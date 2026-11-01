@@ -1,0 +1,19 @@
+{
+  "estado": [
+    "buscando_arbol",
+    "talando",
+    "cultivando",
+    "minando",
+    "vigilando",
+    "descansando",
+    "yendo_a_construir",
+    "construyendo"
+  ],
+  "trabajo": [
+    "libre",
+    "lenador",
+    "agricultor",
+    "minero",
+    "guardia"
+  ]
+}

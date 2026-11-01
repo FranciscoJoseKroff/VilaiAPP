@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "AldeaIncrementalApp",
+    "name": "Vilai",
     "slug": "AldeaIncrementalApp",
+    "scheme": "vilai",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
@@ -19,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-status-bar",
+      "expo-router",
+      "expo-secure-store",
+      "expo-audio",
+      "expo-asset",
+      "expo-font"
+    ]
   }
 }

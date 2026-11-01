@@ -1,0 +1,3 @@
+- Nunca imprimas ni escribas secretos (MONGODB_URI, JWT_SECRET, claves) en código, logs ni commits.
+- La lógica de tiempo, IA e investigación es idéntica en front y back; nada de Math.random().
+- Cambios de API aditivos; no quites campos ni renombres campos del esquema.

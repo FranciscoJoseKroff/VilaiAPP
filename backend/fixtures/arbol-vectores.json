@@ -1,0 +1,22 @@
+[
+  { "tecnologias": {}, "investigaciones": {}, "esperado": { "produccionGeneral": 0, "reduccionDanoEventos": 0 } },
+  { "tecnologias": { "herramientas": 1 }, "esperado": { "produccionGeneral": 0.1 } },
+  { "tecnologias": { "herramientas": 2 }, "esperado": { "produccionGeneral": 0.2 } },
+  { "tecnologias": { "herramientas": 10 }, "esperado": { "produccionGeneral": 1 } },
+  { "tecnologias": { "herramientas": 12 }, "esperado": { "produccionGeneral": 1 } },
+  { "tecnologias": { "logistica": 1 }, "esperado": { "capacidadPlana": { "*": 100 } } },
+  { "tecnologias": { "logistica": 2 }, "esperado": { "capacidadPlana": { "*": 200 } } },
+  { "tecnologias": { "logistica": 5 }, "esperado": { "capacidadPlana": { "*": 500 } } },
+  { "tecnologias": { "defensa": 1 }, "esperado": { "reduccionDanoEventos": 0.1 } },
+  { "tecnologias": { "defensa": 5 }, "esperado": { "reduccionDanoEventos": 0.5 } },
+  { "tecnologias": { "defensa": 12 }, "esperado": { "reduccionDanoEventos": 0.8 } },
+  { "tecnologias": { "metalurgia": 1 }, "esperado": { "multiplicadorRecurso": { "hierro": 1.5 } } },
+  { "tecnologias": {}, "investigaciones": { "metalurgia": true }, "esperado": { "multiplicadorRecurso": { "hierro": 1.5 } } },
+  { "tecnologias": { "planosAntiguos": 1 }, "esperado": { "desbloquea": ["observatorio"] } },
+  { "tecnologias": { "herramientas": 1, "logistica": 1 }, "esperado": { "produccionGeneral": 0.1, "capacidadPlana": { "*": 100 } } },
+  { "tecnologias": { "logistica": 2, "defensa": 2 }, "esperado": { "capacidadPlana": { "*": 200 }, "reduccionDanoEventos": 0.2 } },
+  { "tecnologias": { "herramientas": 3, "defensa": 10, "metalurgia": 1 }, "esperado": { "produccionGeneral": 0.30000000000000004, "reduccionDanoEventos": 0.8, "multiplicadorRecurso": { "hierro": 1.5 } } },
+  { "tecnologias": { "logistica": 1, "planosAntiguos": 1 }, "esperado": { "capacidadPlana": { "*": 100 }, "desbloquea": ["observatorio"] } },
+  { "tecnologias": { "herramientas": 1, "logistica": 1, "defensa": 1, "metalurgia": 1, "planosAntiguos": 1 }, "esperado": { "produccionGeneral": 0.1, "capacidadPlana": { "*": 100 }, "reduccionDanoEventos": 0.1, "multiplicadorRecurso": { "hierro": 1.5 }, "desbloquea": ["observatorio"] } },
+  { "tecnologias": { "herramientas": 10, "logistica": 10, "defensa": 10, "metalurgia": 1, "planosAntiguos": 1 }, "esperado": { "produccionGeneral": 1, "capacidadPlana": { "*": 1000 }, "reduccionDanoEventos": 0.8, "multiplicadorRecurso": { "hierro": 1.5 }, "desbloquea": ["observatorio"] } }
+]

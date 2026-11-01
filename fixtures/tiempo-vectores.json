@@ -1,0 +1,214 @@
+[
+  {
+    "segundos": 0,
+    "id": "primavera",
+    "indice": 0,
+    "segundosEnEstacion": 0,
+    "duracion": 40,
+    "restante": 40
+  },
+  {
+    "segundos": 39,
+    "id": "primavera",
+    "indice": 0,
+    "segundosEnEstacion": 39,
+    "duracion": 40,
+    "restante": 1
+  },
+  {
+    "segundos": 40,
+    "id": "verano",
+    "indice": 1,
+    "segundosEnEstacion": 0,
+    "duracion": 40,
+    "restante": 40
+  },
+  {
+    "segundos": 120,
+    "id": "invierno",
+    "indice": 3,
+    "segundosEnEstacion": 0,
+    "duracion": 60,
+    "restante": 60
+  },
+  {
+    "segundos": 179,
+    "id": "invierno",
+    "indice": 3,
+    "segundosEnEstacion": 59,
+    "duracion": 60,
+    "restante": 1
+  },
+  {
+    "segundos": 10,
+    "id": "primavera",
+    "indice": 0,
+    "segundosEnEstacion": 10,
+    "duracion": 40,
+    "restante": 30,
+    "recursosEsperados": {
+      "madera": 1,
+      "comida": 1.1,
+      "trigo": 1
+    }
+  },
+  {
+    "segundos": 50,
+    "id": "verano",
+    "indice": 1,
+    "segundosEnEstacion": 10,
+    "duracion": 40,
+    "restante": 30,
+    "recursosEsperados": {
+      "madera": 1.155,
+      "comida": 1.05,
+      "trigo": 1.05
+    }
+  },
+  {
+    "segundos": 90,
+    "id": "otoño",
+    "indice": 2,
+    "segundosEnEstacion": 10,
+    "duracion": 40,
+    "restante": 30,
+    "recursosEsperados": {
+      "madera": 1,
+      "comida": 1.15,
+      "trigo": 1.15
+    }
+  },
+  {
+    "segundos": 150,
+    "id": "invierno",
+    "indice": 3,
+    "segundosEnEstacion": 30,
+    "duracion": 60,
+    "restante": 30,
+    "recursosEsperados": {
+      "madera": 0.8,
+      "comida": 0.72,
+      "trigo": 0.8
+    }
+  },
+  {
+    "semilla": "paridad-1",
+    "numero": 1,
+    "edad": "ceniza",
+    "duracion": 6
+  },
+  {
+    "semilla": "paridad-2",
+    "numero": 2,
+    "edad": "sombras",
+    "duracion": 10
+  },
+  {
+    "semilla": "paridad-3",
+    "numero": 3,
+    "edad": "calma",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-4",
+    "numero": 4,
+    "edad": "descubrimientos",
+    "duracion": 7
+  },
+  {
+    "semilla": "paridad-5",
+    "numero": 5,
+    "edad": "descubrimientos",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-6",
+    "numero": 6,
+    "edad": "sombras",
+    "duracion": 10
+  },
+  {
+    "semilla": "paridad-7",
+    "numero": 7,
+    "edad": "ceniza",
+    "duracion": 10
+  },
+  {
+    "semilla": "paridad-8",
+    "numero": 8,
+    "edad": "hielo",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-9",
+    "numero": 9,
+    "edad": "ceniza",
+    "duracion": 7
+  },
+  {
+    "semilla": "paridad-10",
+    "numero": 10,
+    "edad": "sombras",
+    "duracion": 7
+  },
+  {
+    "semilla": "paridad-11",
+    "numero": 11,
+    "edad": "calma",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-12",
+    "numero": 12,
+    "edad": "ceniza",
+    "duracion": 6
+  },
+  {
+    "semilla": "paridad-13",
+    "numero": 13,
+    "edad": "descubrimientos",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-14",
+    "numero": 14,
+    "edad": "calma",
+    "duracion": 11
+  },
+  {
+    "semilla": "paridad-15",
+    "numero": 15,
+    "edad": "sombras",
+    "duracion": 7
+  },
+  {
+    "semilla": "paridad-16",
+    "numero": 16,
+    "edad": "sombras",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-17",
+    "numero": 17,
+    "edad": "abundancia",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-18",
+    "numero": 18,
+    "edad": "ceniza",
+    "duracion": 10
+  },
+  {
+    "semilla": "paridad-19",
+    "numero": 19,
+    "edad": "hielo",
+    "duracion": 8
+  },
+  {
+    "semilla": "paridad-20",
+    "numero": 20,
+    "edad": "calma",
+    "duracion": 10
+  }
+]
