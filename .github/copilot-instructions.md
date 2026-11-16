@@ -27,3 +27,8 @@ El backend (Node/Express/MongoDB) está en otro proyecto y no se toca desde aqu�
 - Cambios de API aditivos: no quites campos del catálogo ni del esquema; no renombres campos.
 - Cuando un prompt diga "alto y reporta", detente, muéstrame la tabla o el diagnóstico y espera
   mi "ok" antes de seguir.
+
+## Backend (carpeta backend/)
+- Nunca imprimas ni escribas secretos (MONGODB_URI, JWT_SECRET, claves) en código, logs ni commits.
+- Los cambios de API son aditivos; no quites campos ni renombres campos del esquema.
+- Los límites de peticiones no deben bloquear a usuarios legítimos que comparten red (aula, demo).

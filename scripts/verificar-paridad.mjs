@@ -9,9 +9,9 @@ const {
   ARBOL_INVESTIGACION,
   EDADES: EDADES_CATALOGO,
   ESTACIONES: ESTACIONES_CATALOGO,
-} = require('../../AldeaIncrementalBack/src/utils/villageDefaults.js');
-const { simularSegundo } = require('../../AldeaIncrementalBack/src/utils/gameSimulation.js');
-const { efectosActivos: efectosActivosBack, RELIQUIAS: RELIQUIAS_BACK } = require('../../AldeaIncrementalBack/src/utils/investigacion.js');
+} = require('../backend/src/utils/villageDefaults.js');
+const { simularSegundo } = require('../backend/src/utils/gameSimulation.js');
+const { efectosActivos: efectosActivosBack, RELIQUIAS: RELIQUIAS_BACK } = require('../backend/src/utils/investigacion.js');
 const { efectosActivos: efectosActivosFront, RELIQUIAS: RELIQUIAS_FRONT } = await import('../src/game/investigacion.js');
 
 const estaciones = {
@@ -61,7 +61,7 @@ for (let ano = 1; ano <= 10000; ano += 1) {
 }
 
 const casosIA = JSON.parse(await fs.readFile(
-  new URL('../../AldeaIncrementalBack/fixtures/ia-vectores.json', import.meta.url),
+  new URL('../backend/fixtures/ia-vectores.json', import.meta.url),
   'utf8'
 ));
 const catalogoIA = {
@@ -112,7 +112,7 @@ for (const [indiceCaso, caso] of casosIA.entries()) {
 console.log(`OK: paridad de tiempo, recursos y eventos para ${casos.length} vectores; IA para ${casosIA.length} vectores`);
 
 const casosArbol = JSON.parse(await fs.readFile(
-  new URL('../../AldeaIncrementalBack/fixtures/arbol-vectores.json', import.meta.url),
+  new URL('../backend/fixtures/arbol-vectores.json', import.meta.url),
   'utf8'
 ));
 for (const [indice, caso] of casosArbol.entries()) {

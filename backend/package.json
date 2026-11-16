@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Backend (Node + Express + MongoDB) para Aldea Incremental",
   "main": "src/server.js",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node test-logic.js && node test-tiempo.js && node test-e2e.js",
+    "test": "node test-logic.js && node test-tiempo.js && node test-e2e.js && node test-seguridad.js",
     "generar-fixtures-aldeano": "node scripts/generar-fixtures-aldeano.js"
   },
   "dependencies": {
@@ -14,6 +17,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^7.6.0",
     "mongoose": "^8.5.0"

@@ -7,9 +7,8 @@ async function main() {
   process.env.JWT_SECRET = 'secreto_e2e';
   process.env.PORT = 4123;
 
-  // server.js se auto-ejecuta al hacer require (conecta y hace listen),
-  // así que lo cargamos después de fijar las variables de entorno.
-  require('./src/server.js');
+  const { iniciarServidor } = require('./src/server.js');
+  await iniciarServidor();
 
   // Esperar un poco a que conecte y levante el server
   await new Promise((r) => setTimeout(r, 1500));
