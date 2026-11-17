@@ -6,6 +6,7 @@ const {
   EVENTOS_NOCTURNOS,
   SEGUNDOS_DIA,
   SEGUNDOS_NOCHE,
+  DURACION_INVESTIGACION_SEGUNDOS,
   PRODUCCION_TRABAJADOR,
   RASGOS_ALDEANO,
   CAPACIDADES_BASE,
@@ -15,6 +16,8 @@ const {
   FACTOR_CRECIMIENTO_UMBRAL,
   ESTACIONES,
   EDADES,
+  LOGROS,
+  CICLO_VIDA,
   costoSiguienteNivel,
   tiempoSiguienteNivel,
 } = require('../utils/villageDefaults');
@@ -31,7 +34,10 @@ function obtenerCatalogo(req, res) {
     segundosNoche: SEGUNDOS_NOCHE,
     estaciones: ESTACIONES,
     edades: EDADES,
+    logros: LOGROS,
+    cicloVida: CICLO_VIDA,
     anioSegundos: 180,
+    duracionInvestigacionSegundos: DURACION_INVESTIGACION_SEGUNDOS,
     produccionTrabajador: PRODUCCION_TRABAJADOR,
     rasgosAldeano: RASGOS_ALDEANO,
     capacidadesBase: CAPACIDADES_BASE,
@@ -54,6 +60,9 @@ function obtenerCostoMejora(req, res) {
   }
   if (!Number.isSafeInteger(nivel) || nivel < 1) {
     return res.status(400).json({ error: 'nivelActual debe ser un entero mayor o igual a 1' });
+  }
+  if (TIPOS_EDIFICIO[tipoId].maxNivel != null && nivel >= TIPOS_EDIFICIO[tipoId].maxNivel) {
+    return res.status(400).json({ error: `${TIPOS_EDIFICIO[tipoId].nombre} ya alcanzó el nivel máximo (${TIPOS_EDIFICIO[tipoId].maxNivel}).` });
   }
 
   res.json({

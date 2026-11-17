@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { ARBOL_INVESTIGACION } = require('../utils/villageDefaults');
+const { ARBOL_INVESTIGACION, LOGROS } = require('../utils/villageDefaults');
 
 const idsTecnologia = new Set(ARBOL_INVESTIGACION.map((nodo) => nodo.id));
 
@@ -33,6 +33,38 @@ const decisionSchema = new mongoose.Schema({
   opciones: { type: [opcionDecisionSchema], default: [] },
 }, { _id: false });
 
+const estadisticaPuntoSchema = new mongoose.Schema({
+  a: { type: Number, required: true, min: 1, validate: Number.isInteger },
+  r: {
+    madera: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    comida: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    hierro: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    oro: { type: Number, required: true, min: 0, validate: Number.isInteger },
+  },
+  p: { type: Number, required: true, min: 0, validate: Number.isInteger },
+  e: { type: String, enum: ['calma', 'abundancia', 'hielo', 'ceniza', 'sombras', 'descubrimientos'], required: true },
+}, { _id: false });
+
+const estadisticasSchema = new mongoose.Schema({
+  serie: {
+    type: [estadisticaPuntoSchema],
+    default: [],
+    validate: { validator: (serie) => serie.length <= 120, message: 'La serie de estadísticas no puede superar 120 puntos.' },
+  },
+  contadores: {
+    eventosDefendidos: { type: Number, default: 0, min: 0, validate: Number.isInteger },
+    eventosAceptados: { type: Number, default: 0, min: 0, validate: Number.isInteger },
+    edificiosConstruidos: { type: Number, default: 0, min: 0, validate: Number.isInteger },
+    aldeanosLlegados: { type: Number, default: 0, min: 0, validate: Number.isInteger },
+    investigacionesCompletas: { type: Number, default: 0, min: 0, validate: Number.isInteger },
+  },
+}, { _id: false });
+
+const logroSchema = new mongoose.Schema({
+  id: { type: String, enum: LOGROS.map((logro) => logro.id), required: true },
+  anio: { type: Number, required: true, min: 1, validate: Number.isInteger },
+}, { _id: false });
+
 // Un aldeano puede estar "yendo_a_construir" o "construyendo" hacia un
 // edificio; guardamos el _id de Mongo de ese subdocumento como referencia,
 // igual que hicimos con el id numérico en el prototipo de Python.
@@ -41,6 +73,10 @@ const aldeanoSchema = new mongoose.Schema({
   x: { type: Number, required: true },
   y: { type: Number, required: true },
   edad: { type: Number, min: 0 },
+  edadAnios: { type: Number, min: 0, validate: Number.isInteger },
+  esperanza: { type: Number, min: 62, max: 82, validate: Number.isInteger },
+  familiaId: { type: String },
+  dueloAniosRestantes: { type: Number, default: 0, min: 0, max: 1, validate: Number.isInteger },
   profesion: {
     type: String,
     enum: ['lenador', 'granjero', 'minero', 'sin_oficio'],
@@ -53,7 +89,7 @@ const aldeanoSchema = new mongoose.Schema({
   },
   trabajo: { type: String, enum: ['libre', 'lenador', 'agricultor', 'minero', 'guardia'], default: 'libre' },
   modoTrabajo: { type: String, enum: ['automatico', 'manual'], default: 'manual' },
-  rasgo: { type: String, enum: ['polivalente', 'maderero', 'hortelano', 'minero'], default: 'polivalente' },
+  rasgo: { type: String, enum: ['polivalente', 'maderero', 'hortelano', 'minero', 'guardian'], default: 'polivalente' },
   estado: {
     type: String,
     enum: [
@@ -77,13 +113,24 @@ const edificioSchema = new mongoose.Schema({
   tipoId: {
     type: String,
     required: true,
-    enum: ['aserradero', 'granja', 'casa', 'centroInvestigacion', 'granero', 'almacen', 'molino', 'horno', 'mina', 'observatorio'],
+    enum: ['aserradero', 'granja', 'casa', 'centroInvestigacion', 'granero', 'almacen', 'molino', 'horno', 'mina', 'observatorio', 'taberna', 'biblioteca', 'torreVigilancia'],
   },
   x: { type: Number, required: true },
   y: { type: Number, required: true },
   progreso: { type: Number, default: 0 },
   completo: { type: Boolean, default: false },
-  nivel: { type: Number, default: 1 },
+  nivel: {
+    type: Number,
+    default: 1,
+    validate: {
+      validator(nivel) {
+        const { TIPOS_EDIFICIO } = require('../utils/villageDefaults');
+        const maxNivel = TIPOS_EDIFICIO[this.tipoId]?.maxNivel;
+        return maxNivel == null || nivel <= maxNivel;
+      },
+      message: 'El edificio superó su nivel máximo.',
+    },
+  },
   mejorando: { type: Boolean, default: false },
   progresoMejora: { type: Number, default: 0 },
   tiempoMejora: { type: Number, default: 0 },
@@ -144,14 +191,25 @@ const aldeaSchema = new mongoose.Schema(
       coloniasFundadas: { type: Number, default: 0, min: 0 },
       reliquias: { type: Number, default: 0, min: 0 },
       reliquiasGastadas: { type: Number, default: 0, min: 0 },
+      generaciones: { type: Number, default: 0, min: 0, validate: Number.isInteger },
     },
     ciclo: {
       segundos: { type: Number, default: 0, min: 0 },
       dia: { type: Number, default: 1, min: 1 },
     },
     eventoNocturno: {
-      tipo: { type: String, enum: ['bestias', 'helada', 'recaudador', null], default: null },
+      tipo: { type: String, enum: ['bestias', 'helada', 'recaudador', 'incendio', null], default: null },
       dia: { type: Number, default: 0, min: 0 },
+    },
+    eventoPrevisto: {
+      tipo: { type: String, enum: ['bestias', 'helada', 'recaudador', 'incendio', null], default: null },
+      dia: { type: Number, default: 0, min: 0 },
+      segundosRestantes: { type: Number, default: 0, min: 0 },
+    },
+    investigacionEnCurso: {
+      id: { type: String, enum: [...idsTecnologia, null], default: null },
+      nivelObjetivo: { type: Number, min: 1, default: null },
+      progresoSegundos: { type: Number, min: 0, default: 0 },
     },
     edad: {
       id: { type: String, enum: ['calma', 'abundancia', 'hielo', 'ceniza', 'sombras', 'descubrimientos'], default: 'calma' },
@@ -160,9 +218,33 @@ const aldeaSchema = new mongoose.Schema(
       duracionAnios: { type: Number, default: 10 },
     },
     cronica: [{ anio: { type: Number }, tipo: { type: String }, texto: { type: String } }],
+    estadisticas: { type: estadisticasSchema, default: () => ({}) },
+    logros: {
+      type: [logroSchema],
+      default: [],
+      validate: { validator: (logros) => new Set(logros.map((logro) => logro.id)).size === logros.length, message: 'No se puede repetir un logro.' },
+    },
+    marcaDemo: { type: Boolean, default: false },
+    sospechosa: { type: Boolean, default: false, select: false },
+    poblacionRanking: { type: Number, default: 0, min: 0, select: false },
+    anclaAntiTrampas: {
+      cicloDia: { type: Number, min: 1, select: false },
+      inicio: { type: Date, select: false },
+    },
     ultimoGuardado: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
+
+aldeaSchema.path('edificios').validate((edificios) => {
+  const biblioteca = edificios.find((edificio) => edificio.tipoId === 'biblioteca');
+  if (!biblioteca) return true;
+  const centro = edificios.find((edificio) => edificio.tipoId === 'centroInvestigacion');
+  return Boolean(centro && Number(centro.nivel || 1) >= 2);
+}, 'La Biblioteca requiere un Centro de Investigación de nivel 2.');
+
+aldeaSchema.index({ marcaDemo: 1, sospechosa: 1, 'ciclo.dia': -1 });
+aldeaSchema.index({ marcaDemo: 1, sospechosa: 1, 'legado.reliquias': -1 });
+aldeaSchema.index({ marcaDemo: 1, sospechosa: 1, poblacionRanking: -1 });
 
 module.exports = mongoose.model('Aldea', aldeaSchema);

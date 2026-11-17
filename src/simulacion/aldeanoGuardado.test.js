@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { ESTADOS_ALDEANO, TRABAJOS_ALDEANO, prepararAldeaParaGuardar } from './aldeanoEnums.js';
+import {
+  ESTADOS_ALDEANO,
+  TRABAJOS_ALDEANO,
+  RASGOS_ALDEANO,
+  TIPOS_EDIFICIO,
+  TIPOS_EVENTO,
+  prepararAldeaParaGuardar,
+} from './aldeanoEnums.js';
 import { crearAldeanoVida, sincronizarAldeanoConVida } from './mundo.js';
 import { crearStoreAldeanos } from './villagerStore.js';
 import { simularAldeanos } from './simularAldeanos.js';
@@ -10,6 +17,9 @@ test('los enums coinciden con la fixture generada por el backend', async () => {
   const fixture = JSON.parse(await readFile(new URL('../../fixtures/enums-aldeano.json', import.meta.url), 'utf8'));
   assert.deepEqual(ESTADOS_ALDEANO, fixture.estado);
   assert.deepEqual(TRABAJOS_ALDEANO, fixture.trabajo);
+  assert.deepEqual(RASGOS_ALDEANO, fixture.rasgo);
+  assert.deepEqual(TIPOS_EDIFICIO, fixture.edificio);
+  assert.deepEqual(TIPOS_EVENTO, fixture.evento);
 });
 
 test('la simulacion, sincronizacion y guardado no persisten estadoVida ni trabajos visuales', () => {

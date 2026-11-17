@@ -1,6 +1,9 @@
 const TOPE_SEGUNDOS_OFFLINE = 8 * 60 * 60; // máximo 8 horas de progreso acumulado sin abrir la app
 const { simularSegundo } = require('./gameSimulation');
 const { EDADES } = require('./villageDefaults');
+const { asegurarEstadisticas } = require('./migracionEstadisticas');
+const { aplicarLogros } = require('./logros');
+const { LOGROS } = require('./villageDefaults');
 
 function aObjeto(valor) {
   return valor && typeof valor.toObject === 'function' ? valor.toObject() : valor || {};
@@ -34,8 +37,13 @@ function aplicarProgresoInactivo(aldea) {
     investigaciones: aObjeto(aldea.investigaciones),
     tecnologias: aObjeto(aldea.tecnologias),
     legado: aObjeto(aldea.legado),
+    poblacionMaxima: aldea.poblacionMaxima,
     ciclo: aObjeto(aldea.ciclo),
     eventoNocturno: aObjeto(aldea.eventoNocturno),
+    eventoPrevisto: aObjeto(aldea.eventoPrevisto),
+    investigacionEnCurso: aObjeto(aldea.investigacionEnCurso),
+    estadisticas: aObjeto(aldea.estadisticas),
+    logros: (aldea.logros || []).map(aObjeto),
   };
 
   if (segundosAplicados > 0) {
@@ -61,22 +69,57 @@ function aplicarProgresoInactivo(aldea) {
     aldea.eventoNocturno.tipo = estado.eventoNocturno.tipo;
     aldea.eventoNocturno.dia = estado.eventoNocturno.dia;
   }
-  const aldeanosOffline = new Map(
-    (estado.aldeanos || [])
-      .filter((aldeano) => aldeano._id != null)
-      .map((aldeano) => [String(aldeano._id), aldeano])
-  );
-  for (const aldeano of aldea.aldeanos || []) {
-    const actualizado = aldeanosOffline.get(String(aldeano._id));
-    if (!actualizado) continue;
+  aldea.eventoPrevisto = {
+    tipo: estado.eventoPrevisto?.tipo || null,
+    dia: estado.eventoPrevisto?.dia || 0,
+    segundosRestantes: estado.eventoPrevisto?.segundosRestantes || 0,
+  };
+  aldea.investigacionEnCurso = { ...estado.investigacionEnCurso };
+  const aldeanosGuardados = [];
+  for (const [indice, actualizado] of (estado.aldeanos || []).entries()) {
+    const clave = actualizado._id != null
+      ? `mongo:${actualizado._id}`
+      : actualizado.id != null
+        ? `id:${actualizado.id}`
+        : `indice:${indice}`;
+    const aldeano = (aldea.aldeanos || []).find((anterior, indiceAnterior) => (
+      (anterior._id != null
+        ? `mongo:${anterior._id}`
+        : anterior.id != null
+          ? `id:${anterior.id}`
+          : `indice:${indiceAnterior}`) === clave
+    ));
+    if (!aldeano) {
+      const { id, ...nuevoAldeano } = actualizado;
+      aldeanosGuardados.push(nuevoAldeano);
+      continue;
+    }
     aldeano.trabajo = actualizado.trabajo;
     aldeano.estado = actualizado.estado;
     aldeano.pensamientoActual = actualizado.pensamientoActual;
     aldeano.decision = actualizado.decision;
+    aldeano.edad = actualizado.edad;
+    aldeano.edadAnios = actualizado.edadAnios;
+    aldeano.esperanza = actualizado.esperanza;
+    aldeano.rasgo = actualizado.rasgo;
+    aldeano.familiaId = actualizado.familiaId;
+    aldeano.dueloAniosRestantes = actualizado.dueloAniosRestantes;
+    aldeanosGuardados.push(aldeano);
   }
+  aldea.aldeanos = aldeanosGuardados;
   aldea.legado = { ...estado.legado };
   aldea.edad = { ...estado.edad };
   aldea.cronica = [...(estado.cronica || [])];
+  aldea.estadisticas = estado.estadisticas;
+  asegurarEstadisticas(aldea);
+  const idsLogrosIniciales = new Set((aldea.logros || []).map((logro) => logro.id));
+  Object.assign(estado, aplicarLogros(estado, LOGROS));
+  aldea.logros = [...(estado.logros || [])];
+  aldea.cronica = [...(estado.cronica || [])];
+  aldea.legado = { ...estado.legado };
+  const logrosDesbloqueados = aldea.logros
+    .filter((logro) => !idsLogrosIniciales.has(logro.id))
+    .map((logro) => logro.id);
 
   aldea.ultimoGuardado = ahora;
   const edadNuevaId = aldea.edad?.id || edadInicialId;
@@ -95,14 +138,14 @@ function aplicarProgresoInactivo(aldea) {
     cambios,
   };
   const llegadasEnCronica = cambios.filter((cambio) => cambio.tipo === 'aldeano').length;
-  const diferenciaDePoblacion = Math.max(0, (estado.aldeanos || []).length - (aldea.aldeanos || []).length);
-  const aldeanosLlegados = Math.max(llegadasEnCronica, diferenciaDePoblacion);
+  const aldeanosLlegados = llegadasEnCronica;
   Object.defineProperty(ganancias, 'resumenTiempo', { value: resumenTiempo, enumerable: false });
   ganancias.resumenOffline = {
     segundosAusente: Math.round(segundosTranscurridos),
     segundosAplicados: resumenTiempo.segundos,
     recursosGenerados: { ...ganancias },
     aldeanosLlegados,
+    logrosDesbloqueados,
     alcanzoTope8h: segundosTranscurridos >= TOPE_SEGUNDOS_OFFLINE,
   };
   return ganancias;

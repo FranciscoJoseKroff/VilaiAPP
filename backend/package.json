@@ -9,8 +9,16 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node test-logic.js && node test-tiempo.js && node test-e2e.js && node test-seguridad.js",
-    "generar-fixtures-aldeano": "node scripts/generar-fixtures-aldeano.js"
+    "test:server": "node scripts/start-e2e-server.js",
+    "test": "node test-logic.js && node test-tiempo.js && node test-escenarios.js && node test-estadisticas.js && node test-logros.js && node test-apodos.js && node test-antitrampas.js && node test-nuevos-contenidos.js && node test-ciclo-vida.js && node test-e2e.js && node test-seguridad.js",
+    "generar-fixtures-aldeano": "node scripts/generar-fixtures-aldeano.js",
+    "migrar-marca-demo": "node scripts/migrar-marca-demo.js",
+    "migrar-estadisticas": "node scripts/migrar-estadisticas.js",
+    "migrar-logros": "node scripts/migrar-logros.js",
+    "migrar-perfil-ranking": "node scripts/migrar-perfil-ranking.js",
+    "migrar-eventos-investigacion": "node scripts/migrar-eventos-investigacion.js",
+    "migrar-ciclo-vida": "node scripts/migrar-ciclo-vida.js",
+    "balance-nuevos-edificios": "node scripts/balance-nuevos-edificios.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

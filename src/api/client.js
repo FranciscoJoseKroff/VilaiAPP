@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { registrarFalloRed, registrarGuardadoCorrecto, registrarRespuestaApi } from '../diagnostico/registro';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL
   || (Platform.OS === 'web' ? 'http://localhost:4000/api' : 'http://192.168.1.21:4000/api');
@@ -44,20 +45,31 @@ export async function leerTokenGuardado() {
 }
 
 export async function apiFetch(path, { method = 'GET', token, body } = {}) {
-  const respuesta = await fetch(`${API_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: 'Bearer ' + token } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let respuesta;
+  try {
+    respuesta = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: 'Bearer ' + token } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    registrarFalloRed(error?.message || 'No se pudo completar la conexión con la API.');
+    throw error;
+  }
   const datos = await respuesta.json().catch(() => ({}));
+  const detalle = [datos.error, datos.detalle].filter(Boolean).join(': ');
+  registrarRespuestaApi(respuesta.status, detalle);
   if (!respuesta.ok) {
     const error = new Error(`${datos.error || 'Error'} (${respuesta.status})`);
     error.status = respuesta.status;
     error.detalle = datos.detalle;
     throw error;
+  }
+  if ((method === 'PUT' && path === '/aldea') || (method === 'POST' && path === '/aldea/importar')) {
+    registrarGuardadoCorrecto();
   }
   return datos;
 }

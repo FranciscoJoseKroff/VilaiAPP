@@ -1,7 +1,8 @@
 import React, { memo, useEffect, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
+import { PARTICULAS_AMBIENTALES_BASE } from '../../game/calidadGrafica';
 
-const PARTICULAS = Array.from({ length: 18 }, (_, indice) => ({
+const PARTICULAS = Array.from({ length: PARTICULAS_AMBIENTALES_BASE }, (_, indice) => ({
   left: 4 + ((indice * 47) % 92),
   delay: (indice * 370) % 2600,
   duration: 3200 + (indice * 230) % 2800,
@@ -53,11 +54,11 @@ function Particula({ particle, estacion, reducidas }) {
   );
 }
 
-function ParticulasAmbienteComponent({ estacion, enabled = true, ahorroBateria = false }) {
+function ParticulasAmbienteComponent({ estacion, enabled = true, ahorroBateria = false, cantidad = PARTICULAS_AMBIENTALES_BASE }) {
   if (!enabled || ahorroBateria || estacion === 'verano') return null;
   return (
     <View pointerEvents="none" style={styles.contenedor}>
-      {PARTICULAS.slice(0, ahorroBateria ? 0 : 18).map((particle, indice) => (
+      {PARTICULAS.slice(0, Math.max(0, Math.min(PARTICULAS.length, cantidad))).map((particle, indice) => (
         <Particula key={indice} particle={particle} estacion={estacion} reducidas={ahorroBateria} />
       ))}
     </View>

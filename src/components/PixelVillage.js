@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Canvas, Circle, Group, Rect } from '@shopify/react-native-skia';
 import { aldeanosStore } from '../simulacion/villagerStore';
@@ -6,10 +6,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme';
 import { ParticulasAmbiente } from './scene/ParticulasAmbiente';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useCalidadGrafica } from '../context/CalidadGraficaContext';
+import { perfilCalidadGrafica } from '../game/calidadGrafica';
 import { useTemaTiempo } from '../hooks/useTemaTiempo';
 import Animated from 'react-native-reanimated';
 
 const MAPA = { ancho: 760, alto: 360 };
+const noSuscribirse = () => () => {};
 const COLORES_PROFESION = {
   lenador: '#6d4b2c',
   granjero: '#d7a23b',
@@ -101,21 +104,34 @@ function Edificio({ edificio, indice }) {
   const x = Number(edificio.x || 40 + (indice % 8) * 92);
   const y = MAPA.alto - Number(edificio.y || 100 + (indice % 3) * 90);
   const nivel = Math.max(1, Number(edificio.nivel || 1));
-  const ancho = 40 + nivel * 8;
-  const alto = 30 + nivel * 4;
+  const tipoId = edificio.tipoId;
+  const torre = tipoId === 'torreVigilancia';
+  const ancho = torre ? 28 : 40 + nivel * 8;
+  const alto = torre ? 64 : 30 + nivel * 4;
   const completo = edificio.completo !== false;
   const colores = {
     aserradero: ['#8b5a3c', '#d39a62'],
     granja: ['#c9a24a', '#6f9c4c'],
     mina: ['#777d83', '#4b5056'],
     casa: ['#b96d45', '#deaa72'],
+    taberna: [theme.colors.terracota, theme.colors.vino],
+    biblioteca: [theme.colors.papelPergamino, theme.colors.azulBruma],
+    torreVigilancia: [theme.colors.maderaEnvejecida, theme.colors.castañoOscuro],
   };
-  const [pared, techo] = colores[edificio.tipoId] || colores.casa;
+  const [pared, techo] = colores[tipoId] || colores.casa;
   return (
     <Group>
       <Rect x={x - 4} y={y + 30} width={ancho + 8} height={5} color="#3f5a32" opacity={0.55} />
       <Rect x={x} y={y + 10} width={ancho} height={alto} color={completo ? pared : '#9a7654'} />
-      <Rect x={x - 5} y={y + 2} width={ancho + 10} height={12} color={completo ? techo : '#aa8d63'} />
+      {torre ? (
+        <>
+          <Rect x={x - 4} y={y + 2} width={ancho + 8} height={9} color={completo ? techo : '#aa8d63'} />
+          <Rect x={x + 4} y={y - 7} width={5} height={9} color={completo ? techo : '#aa8d63'} />
+          <Rect x={x + 19} y={y - 7} width={5} height={9} color={completo ? techo : '#aa8d63'} />
+          <Rect x={x + 9} y={y + 23} width={10} height={8} color={theme.colors.luzVentana} />
+          <Rect x={x + 9} y={y + 44} width={10} height={18} color="#4a3327" />
+        </>
+      ) : <Rect x={x - 5} y={y + 2} width={ancho + 10} height={12} color={completo ? techo : '#aa8d63'} />}
       {!completo ? (
         <>
           <Rect x={x + 5} y={y - 12} width={3} height={34} color="#6b4a32" />
@@ -123,6 +139,24 @@ function Edificio({ edificio, indice }) {
         </>
       ) : null}
       <Rect x={x + ancho / 2 - 4} y={y + alto - 18} width={8} height={18} color="#4a3327" />
+      {tipoId === 'taberna' ? (
+        <>
+          <Rect x={x + ancho - 8} y={y + 15} width={16} height={13} color={theme.colors.doradoMadera} />
+          <Rect x={x + ancho - 5} y={y + 18} width={7} height={7} color={theme.colors.pergaminoClaro} />
+          <Rect x={x + ancho + 2} y={y + 19} width={4} height={5} color={theme.colors.pergaminoClaro} />
+        </>
+      ) : null}
+      {tipoId === 'biblioteca' ? (
+        <>
+          <Rect x={x + 7} y={y + 22} width={ancho - 14} height={3} color={theme.colors.castañoOscuro} />
+          <Rect x={x + 9} y={y + 14} width={5} height={8} color={theme.colors.coral} />
+          <Rect x={x + 15} y={y + 12} width={5} height={10} color={theme.colors.azulBruma} />
+          <Rect x={x + 21} y={y + 15} width={5} height={7} color={theme.colors.acento} />
+          <Rect x={x + 7} y={y + 35} width={ancho - 14} height={3} color={theme.colors.castañoOscuro} />
+          <Rect x={x + 10} y={y + 27} width={5} height={8} color={theme.colors.azulBruma} />
+          <Rect x={x + 17} y={y + 29} width={5} height={6} color={theme.colors.coral} />
+        </>
+      ) : null}
     </Group>
   );
 }
@@ -142,18 +176,21 @@ function Baldosas() {
 }
 
 function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = false, particulas = true, aldeanoSeleccionadoId = null, onSeleccionarAldeano }) {
-  const [aldeanos, setAldeanos] = useState(() => aldeanosStore.getState().slice(0, 30));
   const [ahora] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const ultimoToque = useRef(0);
   const seleccionId = String(aldeanoSeleccionadoId || '');
   const movimientoReducido = useReducedMotion();
+  const { calidad } = useCalidadGrafica();
+  const perfilGrafico = perfilCalidadGrafica(calidad, movimientoReducido);
   const temaTiempo = useTemaTiempo();
-
-  useEffect(() => aldeanosStore.subscribe((siguientes) => {
-    setAldeanos(siguientes.slice(0, 30));
-  }), []);
+  const aldeanos = useSyncExternalStore(
+    perfilGrafico.animacionEscena ? aldeanosStore.subscribe : noSuscribirse,
+    aldeanosStore.getState,
+    aldeanosStore.getState,
+  );
+  const aldeanosEscena = aldeanos.slice(0, 30);
 
   useEffect(() => {
     if (!seleccionId) return;
@@ -163,6 +200,10 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
     const y = MAPA.alto - Number(aldeano.posicion?.y || 300);
     const destinoX = Math.max(-90, Math.min(90, MAPA.ancho / 2 - x));
     const destinoY = Math.max(-45, Math.min(45, MAPA.alto / 2 - y));
+    if (!perfilGrafico.animacionEscena) {
+      const frame = requestAnimationFrame(() => setPan({ x: destinoX, y: destinoY }));
+      return () => cancelAnimationFrame(frame);
+    }
     let paso = 0;
     const temporizador = setInterval(() => {
       paso += 1;
@@ -175,7 +216,7 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
       if (paso >= 18) clearInterval(temporizador);
     }, 16);
     return () => clearInterval(temporizador);
-  }, [seleccionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [seleccionId, perfilGrafico.animacionEscena]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const edificios = useMemo(() => (aldea?.edificios || []).filter((edificio) => edificio?.tipoId), [aldea?.edificios]);
   const noche = Number(aldea?.ciclo?.segundos || 0) >= 120;
@@ -221,19 +262,21 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
         <Group transform={[{ translateX: pan.x }, { translateY: pan.y }, { scale: zoom }]}>
           <Baldosas />
           {edificios.map((edificio, indice) => <Edificio key={firmaEdificio(edificio, indice)} edificio={edificio} indice={indice} />)}
-          {aldeanos.map((aldeano, indice) => <SpriteAldeano key={String(aldeano.id || indice)} aldeano={aldeano} indice={indice} ahora={ahora} seleccionado={String(aldeano.id) === seleccionId} />)}
+          {aldeanosEscena.map((aldeano, indice) => <SpriteAldeano key={String(aldeano.id || indice)} aldeano={aldeano} indice={indice} ahora={ahora} seleccionado={String(aldeano.id) === seleccionId} />)}
         </Group>
         {noche ? <Rect x={0} y={0} width={760} height={360} color="#182b4a" opacity={0.48} /> : null}
-        {particulas && !ahorroBateria && estacion === 'invierno' ? (
+        {particulas && !ahorroBateria && estacion === 'invierno' && perfilGrafico.coposNieve > 0 ? (
           <>
-            <Rect x={90} y={50} width={3} height={3} color="#ffffff" />
-            <Rect x={210} y={130} width={4} height={4} color="#ffffff" />
-            <Rect x={470} y={80} width={3} height={3} color="#ffffff" />
-            <Rect x={650} y={170} width={4} height={4} color="#ffffff" />
+            {Array.from({ length: perfilGrafico.coposNieve }, (_, indice) => {
+              const x = [90, 210, 470, 650][indice];
+              const y = [50, 130, 80, 170][indice];
+              const size = indice % 2 === 0 ? 3 : 4;
+              return <Rect key={`nieve-${indice}`} x={x} y={y} width={size} height={size} color="#ffffff" />;
+            })}
           </>
         ) : null}
       </Canvas>
-      {aldeanos.map((aldeano, indice) => {
+      {aldeanosEscena.map((aldeano, indice) => {
         const x = Number(aldeano.posicion?.x || 240 + indice * 18);
         const y = MAPA.alto - Number(aldeano.posicion?.y || 300);
         return (
@@ -247,8 +290,8 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
           />
         );
       })}
-      {!ahorroBateria && particulas && !movimientoReducido ? (
-        <ParticulasAmbiente estacion={estacion} enabled={particulas} ahorroBateria={ahorroBateria} />
+      {!ahorroBateria && particulas && perfilGrafico.particulas > 0 ? (
+        <ParticulasAmbiente estacion={estacion} enabled={particulas} ahorroBateria={ahorroBateria} cantidad={perfilGrafico.particulas} />
       ) : null}
       <View style={styles.controles} pointerEvents="box-none">
         <Text style={styles.zoom} onPress={() => setZoom((actual) => Math.max(0.8, Math.min(2, actual - 0.2)))}>−</Text>

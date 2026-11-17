@@ -59,6 +59,9 @@ function costoDe(nodo, nivelActual = 0) {
 
 function puedeInvestigar(aldea, nodo) {
   if (!nodo) return { ok: false, motivo: 'Esta investigación no está disponible.' };
+  if (aldea?.investigacionEnCurso?.id) {
+    return { ok: false, motivo: 'Ya hay una investigación en curso.' };
+  }
   const nivel = nivelDe(aldea, nodo.id);
   if (nodo.maxNivel != null && nivel >= nodo.maxNivel) {
     return { ok: false, motivo: `${nodo.nombre} ya alcanzó su nivel máximo.` };

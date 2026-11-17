@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { theme } from '../../theme';
+import GameIcon from './GameIcon';
 
 export const RESOURCE_ICONS = {
   madera: { name: 'tree', color: theme.colors.madera, label: 'Madera' },
@@ -23,6 +24,9 @@ const BUILDING_ICONS = {
   observatorio: 'telescope',
   almacen: 'warehouse',
   barraca: 'shield-home',
+  taberna: 'beer-stein',
+  biblioteca: 'bookshelf',
+  torreVigilancia: 'watchtower',
 };
 
 export function ResourceIcon({ resource, size = 18, color }) {
@@ -31,6 +35,9 @@ export function ResourceIcon({ resource, size = 18, color }) {
 }
 
 export function BuildingIcon({ buildingId, size = 20, color = theme.colors.acento }) {
+  if (['taberna', 'biblioteca', 'torreVigilancia'].includes(buildingId)) {
+    return <GameIcon id={BUILDING_ICONS[buildingId]} size={size} color={color} />;
+  }
   return <MaterialCommunityIcons name={BUILDING_ICONS[buildingId] || 'home-city'} size={size} color={color} />;
 }
 

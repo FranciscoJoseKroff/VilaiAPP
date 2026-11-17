@@ -11,6 +11,8 @@ import { GameFeedback } from '../../components/GameFeedback';
 import { OnboardingModal } from '../../components/OnboardingModal';
 import { useMetas } from '../../hooks/useMetas';
 import { PanelMetas } from '../../components/PanelMetas';
+import { incrementarContador } from '../../game/estadisticas.js';
+import { aplicarLogros } from '../../game/logros.js';
 
 function LoadingVilai({ message }) {
   return <SafeAreaView style={styles.center} edges={['top', 'bottom']}><View style={styles.brandMark}><Text style={styles.brandText}>VILAI</Text><ActivityIndicator color={theme.colors.acento} />{message ? <Text accessibilityRole="alert" style={styles.loadingMessage}>{message}</Text> : null}</View></SafeAreaView>;
@@ -50,7 +52,11 @@ export default function TabsLayout() {
       ? [...new Set([...(actual.desbloqueos || []), meta.recompensa.desbloqueo])]
       : actual.desbloqueos;
     const puntosInvestigacion = Number(actual.puntosInvestigacion || 0) + Number(meta.recompensa.puntosInvestigacion || 0);
-    const actualizada = { ...actual, recursos, aldeanos, desbloqueos, puntosInvestigacion };
+    let actualizada = { ...actual, recursos, aldeanos, desbloqueos, puntosInvestigacion };
+    for (let indice = 0; indice < cantidadAldeanos; indice += 1) {
+      actualizada = incrementarContador(actualizada, 'aldeanosLlegados');
+    }
+    actualizada = aplicarLogros(actualizada, game.catalogo?.logros);
     game.setAldea(actualizada);
     game.guardar(actualizada, game.token);
     const puntos = Number(meta.recompensa.puntosInvestigacion || 0);
@@ -86,6 +92,7 @@ export default function TabsLayout() {
         <LoginScreen
           modoRegistro={game.modoRegistro}
           nombre={game.nombre} setNombre={game.setNombre}
+          apodo={game.apodo} setApodo={game.setApodo}
           email={game.email} setEmail={game.setEmail}
           password={game.password} setPassword={game.setPassword}
           error={game.error} enviando={game.enviando}
@@ -101,9 +108,14 @@ export default function TabsLayout() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <Pressable accessibilityLabel="Abrir ajustes" accessibilityHint="Abre vibración, versión y cierre de sesión" accessibilityRole="button" hitSlop={8} style={styles.gear} onPress={() => router.push('/ajustes')}>
+      <Pressable accessibilityLabel="Abrir ajustes" accessibilityHint="Abre los ajustes de la aldea" accessibilityRole="button" hitSlop={8} style={styles.gear} onPress={() => router.push('/ajustes')}>
         <AppIcon name="cog" size={20} />
       </Pressable>
+      {game.modoDemo ? (
+        <View pointerEvents="none" style={styles.demoBadgeContainer}>
+          <Text style={styles.demoBadge}>MODO DEMO</Text>
+        </View>
+      ) : null}
       <GameFeedback />
       <OnboardingModal visible={mostrarOnboarding} onClose={() => setMostrarOnboarding(false)} />
       <Pressable
@@ -131,7 +143,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="aldeanos" options={{ title: 'Aldeanos', tabBarIcon: ({ color }) => <AppIcon name="account-group" size={20} color={color} /> }} />
         <Tabs.Screen name="construir" options={{ title: 'Construir', tabBarIcon: ({ color }) => <AppIcon name="hammer-wrench" size={20} color={color} /> }} />
         <Tabs.Screen name="investigacion" options={{ title: 'Investigación', tabBarIcon: ({ color }) => <AppIcon name={game.arbolDesbloqueado ? 'flask' : 'lock'} size={20} color={color} /> }} />
-        <Tabs.Screen name="ajustes" options={{ href: null, title: 'Ajustes' }} />
+        <Tabs.Screen name="ajustes" options={{ tabBarButton: () => null, title: 'Ajustes' }} />
       </Tabs>
     </SafeAreaView>
   );
@@ -144,6 +156,8 @@ const styles = StyleSheet.create({
   brandMark: { alignItems: 'center', gap: theme.spacing[16] }, brandText: { color: theme.colors.acento, fontSize: theme.typography.sizes.hero, fontWeight: theme.typography.weights.heavy, letterSpacing: 6 }, loadingMessage: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, textAlign: 'center', maxWidth: 320 },
   gear: { position: 'absolute', top: 8, right: 12, zIndex: 30, width: 44, height: 44, borderRadius: theme.radius[16], alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.superficieAlta, borderWidth: 1, borderColor: theme.colors.borde },
   gearText: { color: theme.colors.textoPrimario, fontSize: 20 },
+  demoBadgeContainer: { position: 'absolute', top: 8, left: 0, right: 0, zIndex: 30, alignItems: 'center' },
+  demoBadge: { overflow: 'hidden', borderRadius: theme.radius[10], borderWidth: 1, borderColor: theme.colors.acento, backgroundColor: theme.colors.superficie, color: theme.colors.acento, fontSize: theme.typography.sizes.small, fontWeight: theme.typography.weights.bold, paddingHorizontal: theme.spacing[12], paddingVertical: theme.spacing[8] },
   tabBar: { backgroundColor: theme.colors.superficie, borderTopColor: theme.colors.borde, height: 72, paddingTop: 6, paddingBottom: 8 },
   tabLabel: { fontSize: 14, fontWeight: theme.typography.weights.semibold },
   tabIcon: { color: theme.colors.textoPrimario, fontSize: 18 },

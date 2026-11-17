@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import { aldeanosStore } from '../../simulacion/villagerStore';
 import PixelPanel from '../../components/pixel/PixelPanel';
 import { AvatarAldeano } from '../../components/AvatarAldeano';
+import { EtapaVidaIcon, datosEtapaVida } from '../../components/EtapaVidaIcon';
+import { etapaVida } from '../../game/cicloVida';
 
 const TRABAJOS = {
   automatico: { nombre: 'Auto', icono: 'robot-outline' },
@@ -64,7 +66,7 @@ const TarjetaAldeano = memo(function TarjetaAldeano({ aldeano, indice, indiceAld
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Abrir opciones de ${aldeano.nombre || 'aldeano'}. ${trabajoActual}. ${razon}`}
+      accessibilityLabel={`Abrir opciones de ${aldeano.nombre || 'aldeano'}. ${datosEtapaVida(aldeano).nombre}, ${Number(aldeano.edadAnios ?? aldeano.edad ?? 18)} años. ${trabajoActual}. ${razon}`}
       accessibilityHint="Abre el oficio y los detalles del aldeano"
       hitSlop={8}
       style={styles.card}
@@ -80,6 +82,10 @@ const TarjetaAldeano = memo(function TarjetaAldeano({ aldeano, indice, indiceAld
           </View>
         </View>
         <Text style={styles.trait}>{nombreRasgo}</Text>
+        <View style={styles.etapaVida}>
+          <EtapaVidaIcon aldeano={aldeano} size={16} />
+          <Text style={styles.etapaTexto}>{datosEtapaVida(aldeano).nombre} · {Number(aldeano.edadAnios ?? aldeano.edad ?? 18)} años</Text>
+        </View>
         <View style={styles.currentJob}><AppIcon name={trabajo.icono} size={16} color={theme.colors.acento} /><Text style={styles.jobText}>{trabajoActual}</Text></View>
         <Text style={styles.reason} numberOfLines={1}>{razon}</Text>
         <Text style={styles.reason} numberOfLines={1}>{aldeano.pensamientoActual || aldeano.estadoVida || 'Descansando en la aldea'}</Text>
@@ -98,6 +104,8 @@ const TarjetaAldeano = memo(function TarjetaAldeano({ aldeano, indice, indiceAld
   && anterior.onAbrir === siguiente.onAbrir
   && anterior.aldeano._id === siguiente.aldeano._id
   && anterior.aldeano.nombre === siguiente.aldeano.nombre
+  && anterior.aldeano.edadAnios === siguiente.aldeano.edadAnios
+  && anterior.aldeano.esperanza === siguiente.aldeano.esperanza
   && anterior.aldeano.rasgo === siguiente.aldeano.rasgo
   && anterior.aldeano.trabajo === siguiente.aldeano.trabajo
   && anterior.aldeano.modoTrabajo === siguiente.aldeano.modoTrabajo
@@ -223,6 +231,10 @@ export default function AldeanosTab() {
 
   const seleccionarTrabajo = (trabajo) => {
     if (!seleccionado) return;
+    if (etapaVida(aldeanoSeleccionado) === 'nino' && trabajo !== 'libre') {
+      game.setMensaje('Los niños todavía no pueden trabajar.');
+      return;
+    }
     game.asignarTrabajo(seleccionado.indice, trabajo);
     setSeleccionado(null);
   };
@@ -333,7 +345,9 @@ export default function AldeanosTab() {
 
               <Text style={styles.sheetSection}>Asignar oficio</Text>
 
-              {Object.entries(TRABAJOS).map(([id, trabajo]) => {
+              {etapaVida(aldeanoSeleccionado) === 'nino'
+                ? <Text style={styles.childNotice}>Todavía es niño y no puede trabajar.</Text>
+                : Object.entries(TRABAJOS).map(([id, trabajo]) => {
                 if (id === 'automatico') {
                   return <Pressable key={id} accessibilityRole="button" style={[styles.jobOption, aldeanoSeleccionado.modoTrabajo === 'automatico' && styles.jobOptionActive]} onPress={() => seleccionarTrabajo(id)}><View style={styles.jobIcon}><AppIcon name={trabajo.icono} size={20} /></View><View style={styles.jobOptionInfo}><Text style={styles.jobOptionName}>{trabajo.nombre}</Text><Text style={styles.jobOptionDetail}>El aldeano decide solo según las necesidades</Text></View>{aldeanoSeleccionado.modoTrabajo === 'automatico' ? <AppIcon name="check" size={20} color={theme.colors.acento} /> : null}</Pressable>;
                 }
@@ -373,6 +387,7 @@ const styles = StyleSheet.create({
   pixelCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: theme.spacing[12] },
   avatar: { width: 54, height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius[10], backgroundColor: theme.colors.superficieAlta, marginRight: theme.spacing[12], overflow: 'hidden' },
   cardInfo: { flex: 1 }, cardTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, name: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold }, trait: { color: theme.colors.acento, fontSize: 14, marginTop: 2 },
+  etapaVida: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }, etapaTexto: { color: theme.colors.textoSecundario, fontSize: 12 }, childNotice: { color: theme.colors.textoSecundario, marginVertical: 8 },
   badge: { borderRadius: theme.radius[6], borderWidth: 1, borderColor: theme.colors.borde, paddingHorizontal: 7, paddingVertical: 3 }, badgeAuto: { borderColor: theme.colors.acento }, badgeText: { color: theme.colors.textoSecundario, fontSize: 12, fontWeight: theme.typography.weights.bold },
   currentJob: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7 }, jobText: { color: theme.colors.textoPrimario, fontSize: 14, fontWeight: theme.typography.weights.semibold }, reason: { color: theme.colors.textoSecundario, fontSize: 14, marginTop: 3 }, contribution: { color: theme.colors.textoSecundario, fontSize: 14, marginTop: 4 },
   empty: { backgroundColor: theme.colors.superficie, borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[16], padding: theme.spacing[16], alignItems: 'center' }, emptyIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.superficieAlta, marginBottom: theme.spacing[12] }, emptyTitle: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.title, fontWeight: theme.typography.weights.bold }, emptyText: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, textAlign: 'center', marginTop: theme.spacing[8] },

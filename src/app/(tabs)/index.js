@@ -7,8 +7,9 @@ import { usePreferenciasEscena } from '../../hooks/usePreferenciasEscena';
 import { calcularCapacidadesAldea } from '../../game/simulation';
 import { ResourceChip } from '../../components/ResourceChip';
 import { AppIcon } from '../../components/icons';
+import { aplicarLogros } from '../../game/logros';
 import { estacionEn } from '../../game/tiempo';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { VillagerBottomSheet } from '../../components/VillagerBottomSheet';
 import { aldeanosStore } from '../../simulacion/villagerStore';
 import { useHapticsFeedback } from '../../context/HapticsContext';
@@ -107,8 +108,9 @@ export default function AldeaTab() {
       anio: Number(game.aldea.ciclo?.dia || 1), tipo: 'aldeano', texto: `${aldeanoSeleccionado.nombre} recibió una bendición`,
     }].slice(-50);
     aldeanosStore.registrarSuceso(`${aldeanoSeleccionado.nombre} recibió una bendición`);
-    game.setAldea({ ...game.aldea, recursos, cronica });
-    game.guardar({ ...game.aldea, recursos, cronica }, game.token);
+    const actualizada = aplicarLogros({ ...game.aldea, recursos, cronica }, game.catalogo?.logros);
+    game.setAldea(actualizada);
+    game.guardar(actualizada, game.token);
   };
   const edadInicio = Number(aldea.edad?.inicioAnio ?? edadAnio);
   const edadDuracion = Number(aldea.edad?.duracionAnios ?? 10);
@@ -128,6 +130,25 @@ export default function AldeaTab() {
         <Text style={styles.title}>Tu aldea despierta</Text>
       </LinearGradient>
       <Text style={styles.subtitle}>Construye, mejora y haz crecer tu comunidad.</Text>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ver estadísticas de la aldea"
+        style={styles.statisticsButton}
+        onPress={() => router.push('/estadisticas')}
+      >
+        <AppIcon name="chart-line" size={20} color={theme.colors.superficie} />
+        <Text style={styles.statisticsButtonText}>Estadísticas</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ver logros de la aldea"
+        style={styles.statisticsButton}
+        onPress={() => router.push('/logros')}
+      >
+        <AppIcon name="trophy" size={20} color={theme.colors.superficie} />
+        <Text style={styles.statisticsButtonText}>Logros</Text>
+      </Pressable>
 
       <PixelPanel variant="elevada" style={[styles.cycle, advertenciaInvierno && styles.cycleWarning]}>
         <View style={styles.cycleHeading}>
@@ -216,6 +237,8 @@ const styles = StyleSheet.create({
   titleGradient: { borderRadius: 4, paddingHorizontal: theme.spacing[8], paddingVertical: theme.spacing[4], marginBottom: theme.spacing[8] },
   title: { ...theme.typography.titulo, color: theme.colors.textoPrimario },
   subtitle: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, marginBottom: theme.spacing[16] },
+  statisticsButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[8], backgroundColor: theme.colors.acento, borderRadius: theme.radius[6], marginBottom: theme.spacing[8], paddingHorizontal: theme.spacing[12] },
+  statisticsButtonText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
   cycle: { borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficie, padding: theme.spacing[12], marginBottom: theme.spacing[8] }, cycleWarning: { borderColor: theme.colors.aviso },
   cycleHeading: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], minHeight: 44 }, cycleCopy: { flex: 1 }, cycleText: { ...theme.typography.titulo, color: theme.colors.textoPrimario, fontSize: 16, lineHeight: 24 }, cycleTime: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.small },
   cycleTrack: { height: 8, overflow: 'hidden', borderRadius: theme.radius[6], backgroundColor: theme.colors.superficieAlta, marginTop: theme.spacing[8] }, cycleFill: { height: '100%', backgroundColor: theme.colors.acento }, cycleFillWarning: { backgroundColor: theme.colors.aviso },

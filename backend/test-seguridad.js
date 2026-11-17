@@ -16,7 +16,7 @@ async function main() {
 
   const salud = await fetch(`${base}/api/salud`);
   assert.strictEqual(salud.status, 200);
-  assert.deepStrictEqual(await salud.json(), { estado: 'ok', mongo: 'conectado' });
+  assert.deepStrictEqual(await salud.json(), { estado: 'ok', mongo: 'conectado', version: require('./package.json').version });
   console.log('OK: /api/salud informa Mongo conectado');
 
   const corsPermitido = await fetch(`${base}/api/salud`, {

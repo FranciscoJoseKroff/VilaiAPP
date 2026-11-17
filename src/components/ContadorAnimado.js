@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { theme } from '../theme';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 export const ContadorAnimado = memo(function ContadorAnimado({
   value,
@@ -10,6 +11,8 @@ export const ContadorAnimado = memo(function ContadorAnimado({
   pulsoAlAumentar = true,
   animate = false,
 }) {
+  const movimientoReducido = useReducedMotion();
+  const animacionActiva = animate && !movimientoReducido;
   const valorAnterior = useRef(Number(value) || 0);
   const [visible, setVisible] = useState(valorAnterior.current);
   const escala = useSharedValue(1);
@@ -32,10 +35,10 @@ export const ContadorAnimado = memo(function ContadorAnimado({
         frame = requestAnimationFrame(actualizar);
       }
     };
-    if (animate) frame = requestAnimationFrame(actualizar);
+    if (animacionActiva) frame = requestAnimationFrame(actualizar);
     else setVisible(destino);
 
-    if (animate && pulsoAlAumentar && destino > inicio) {
+    if (animacionActiva && pulsoAlAumentar && destino > inicio) {
       escala.value = withTiming(1.12, { duration: 120 });
       escala.value = withTiming(1, { duration: 180 });
     }
@@ -43,7 +46,7 @@ export const ContadorAnimado = memo(function ContadorAnimado({
     return () => {
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [animate, pulsoAlAumentar, value, escala]);
+  }, [animacionActiva, pulsoAlAumentar, value, escala]);
 
   const texto = formato ? formato(visible, compacto) : String(Math.round(visible));
 

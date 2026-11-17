@@ -7,6 +7,7 @@ import { ContadorAnimado } from './ContadorAnimado';
 import { TextoFlotante } from './TextoFlotante';
 import PixelPanel from './pixel/PixelPanel';
 import PixelBar from './pixel/PixelBar';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 export const ResourceChip = memo(function ResourceChip({ resource, amount = 0, capacity, rate = 0, compact = false, showLabel = true, seasonFactor }) {
   const capacidad = Number(capacity) || 0;
@@ -22,6 +23,7 @@ export const ResourceChip = memo(function ResourceChip({ resource, amount = 0, c
   const indicadorEstacional = factorEstacional !== 1 ? (factorEstacional > 1 ? '▲ por la estación' : '▼ por la estación') : '';
   const [cambioGrande, setCambioGrande] = useState(null);
   const pulsoAlerta = useSharedValue(1);
+  const movimientoReducido = useReducedMotion();
 
   useEffect(() => {
     const diferencia = Number(amount) - previous.current;
@@ -33,10 +35,10 @@ export const ResourceChip = memo(function ResourceChip({ resource, amount = 0, c
   }, [amount]);
 
   useEffect(() => {
-    pulsoAlerta.value = lleno
+    pulsoAlerta.value = lleno && !movimientoReducido
       ? withRepeat(withTiming(0.55, { duration: 700 }), -1, true)
       : 1;
-  }, [lleno, pulsoAlerta]);
+  }, [lleno, movimientoReducido, pulsoAlerta]);
 
   const estiloAlerta = useAnimatedStyle(() => ({
     opacity: pulsoAlerta.value,

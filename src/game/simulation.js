@@ -1,6 +1,15 @@
-import { estacionEn, avanzarTiempo, multiplicadoresDeEstacion, avanzarEdad, semillaDe, elegirEventoInvierno } from './tiempo';
-import { decidir } from './cerebro';
-import { efectosActivos, RELIQUIAS } from './investigacion';
+import { estacionEn, avanzarTiempo, multiplicadoresDeEstacion, avanzarEdad, semillaDe, elegirEventoInvierno } from './tiempo.js';
+import { decidir } from './cerebro.js';
+import { efectosActivos, RELIQUIAS } from './investigacion.js';
+import { registrarAnio } from './estadisticas.js';
+import { aplicarLogros } from './logros.js';
+import { incrementarContador } from './estadisticas.js';
+import { calcularEfectosEdificios } from './buildingEffects.js';
+import {
+  asegurarAldeaVida,
+  avanzarAnioVida,
+  multiplicadorProduccion,
+} from './cicloVida.js';
 
 export function puedePagar(recursos, costo) {
   return Object.entries(costo).every(([recurso, cantidad]) => (recursos[recurso] || 0) >= cantidad);
@@ -52,6 +61,7 @@ export function simularProduccionActiva(aldea, catalogo) {
   };
   const capacidades = calcularCapacidadesAldea(aldea, catalogo);
   const efectos = efectosActivos(aldea, catalogo.arbol || [], catalogo.reliquias || RELIQUIAS);
+  const efectosEdificios = calcularEfectosEdificios(aldea, catalogo.tiposEdificio);
   const tasas = { ...aldea.tasasGeneracion };
   for (const edificio of aldea.edificios || []) {
     const info = catalogo.tiposEdificio[edificio.tipoId];
@@ -73,11 +83,13 @@ export function simularProduccionActiva(aldea, catalogo) {
   };
 
   for (const aldeano of aldea.aldeanos) {
+    const factorEdad = multiplicadorProduccion(aldeano);
+    if (factorEdad <= 0) continue;
     if (aldeano.necesidades) continue;
     if (aldeano.trabajo === 'lenador') {
-      tasas.madera = (tasas.madera || 0) + (catalogo.produccionTrabajador ?? 0.2) * (1 + bonoDeOficio(aldeano, 'lenador'));
+      tasas.madera = (tasas.madera || 0) + (catalogo.produccionTrabajador ?? 0.2) * factorEdad * (1 + bonoDeOficio(aldeano, 'lenador'));
     } else if (aldeano.trabajo === 'agricultor') {
-      tasas.comida = (tasas.comida || 0) + (catalogo.produccionTrabajador ?? 0.2) * (1 + bonoDeOficio(aldeano, 'agricultor'));
+      tasas.comida = (tasas.comida || 0) + (catalogo.produccionTrabajador ?? 0.2) * factorEdad * (1 + bonoDeOficio(aldeano, 'agricultor'));
     }
   }
 
@@ -87,6 +99,7 @@ export function simularProduccionActiva(aldea, catalogo) {
   const multiplicadorGeneral = (aldea.multiplicadores?.generacion ?? 1)
     * (1 + efectos.produccionGeneral)
     * (1 + efectos.bonoReliquias)
+    * (1 + efectosEdificios.produccionGeneral)
     * factoresEstacion.general
     * (edad.generacion ?? 1);
   for (const [recurso, tasa] of Object.entries(tasas)) {
@@ -114,7 +127,7 @@ export function simularProduccionActiva(aldea, catalogo) {
     const mineros = aldea.aldeanos.filter((aldeano) => aldeano.trabajo === 'minero');
     const receta = catalogo.tiposEdificio.mina.produccionPorMinero;
     const capacidadMinera = mineros.reduce(
-      (total, aldeano) => total + 1 + bonoDeOficio(aldeano, 'minero'),
+      (total, aldeano) => total + multiplicadorProduccion(aldeano) * (1 + bonoDeOficio(aldeano, 'minero')),
       0
     );
     const hierroPosible = receta.produccion * capacidadMinera * mina.nivel * (efectos.multiplicadorRecurso.hierro || 1);
@@ -143,12 +156,30 @@ export function avanzarCicloActivo(aldea, catalogo) {
   const duracionTotal = duracionDia + duracionNoche;
   const siguiente = avanzarTiempo(ciclo, 1);
   let eventoNocturno = { tipo: null, dia: 0, ...(aldea.eventoNocturno || {}) };
+  let eventoPrevisto = { tipo: null, dia: 0, segundosRestantes: 0, ...(aldea.eventoPrevisto || {}) };
+  const efectosEdificios = calcularEfectosEdificios(aldea, catalogo.tiposEdificio);
 
   if (ciclo.segundos < duracionDia && siguiente.ciclo.segundos >= duracionDia && !eventoNocturno.tipo) {
     const edadActual = catalogo.edades?.[aldea.edad?.id] || catalogo.edades?.calma || {};
     const seed = semillaDe(String(aldea._id ?? aldea.id ?? 'aldea'));
     const tipo = elegirEventoInvierno(seed, ciclo.dia, edadActual.pesosEventos);
     eventoNocturno = { tipo, dia: ciclo.dia };
+    eventoPrevisto = { tipo: null, dia: 0, segundosRestantes: 0 };
+  } else if (eventoNocturno.tipo) {
+    eventoPrevisto = { tipo: null, dia: 0, segundosRestantes: 0 };
+  } else if (efectosEdificios.avisoEventoSegundos > 0) {
+    const umbral = duracionDia - efectosEdificios.avisoEventoSegundos;
+    if (ciclo.segundos < umbral && siguiente.ciclo.segundos >= umbral) {
+      const edadActual = catalogo.edades?.[aldea.edad?.id] || catalogo.edades?.calma || {};
+      const seed = semillaDe(String(aldea._id ?? aldea.id ?? 'aldea'));
+      eventoPrevisto = {
+        tipo: elegirEventoInvierno(seed, ciclo.dia, edadActual.pesosEventos),
+        dia: ciclo.dia,
+        segundosRestantes: duracionDia - siguiente.ciclo.segundos,
+      };
+    } else if (eventoPrevisto.tipo) {
+      eventoPrevisto = { ...eventoPrevisto, segundosRestantes: Math.max(0, duracionDia - siguiente.ciclo.segundos) };
+    }
   }
   const copiaEdad = {
     ...aldea,
@@ -163,21 +194,107 @@ export function avanzarCicloActivo(aldea, catalogo) {
   void duracionTotal;
   return {
     ciclo: siguiente.ciclo,
+    cruzoAnio: siguiente.eventos.cruzoAnio,
     eventoNocturno,
+    eventoPrevisto,
     edad: copiaEdad.edad,
     cronica: copiaEdad.cronica,
     legado: copiaEdad.legado,
   };
 }
 
+export function simularPasoActivo(aldea, catalogo) {
+  const preparada = asegurarAldeaVida(aldea);
+  const cambiosCiclo = avanzarCicloActivo(preparada, catalogo);
+  const { cruzoAnio, ...cambiosAldea } = cambiosCiclo;
+  let conCiclo = { ...preparada, ...cambiosAldea };
+  if (cruzoAnio) {
+    conCiclo = avanzarAnioVida(conCiclo, {
+      capacidadComida: calcularCapacidadesAldea(conCiclo, catalogo).comida,
+    });
+  }
+  const aldeanos = actualizarAgentesAutonomos(conCiclo, catalogo);
+  const conAgentes = { ...conCiclo, aldeanos };
+  let actualizada = {
+    ...conAgentes,
+    recursos: simularProduccionActiva(conAgentes, catalogo),
+  };
+  const investigacion = actualizada.investigacionEnCurso;
+  let investigacionCompletada = false;
+  if (investigacion?.id) {
+    const efectosEdificios = calcularEfectosEdificios(actualizada, catalogo.tiposEdificio);
+    const avance = Number(actualizada.duracionInvestigacionSegundos || catalogo.duracionInvestigacionSegundos || 60)
+      * Number(investigacion.nivelObjetivo || 1);
+    const progreso = Number(investigacion.progresoSegundos || 0) + efectosEdificios.velocidadInvestigacion;
+    if (progreso >= avance) {
+      const nodo = (catalogo.arbol || []).find((item) => item.id === investigacion.id);
+      actualizada = {
+        ...actualizada,
+        tecnologias: { ...(actualizada.tecnologias || {}), [investigacion.id]: investigacion.nivelObjetivo },
+        investigaciones: investigacion.id === 'metalurgia'
+          ? { ...(actualizada.investigaciones || {}), metalurgia: true }
+          : actualizada.investigaciones,
+        investigacionEnCurso: { id: null, nivelObjetivo: null, progresoSegundos: 0 },
+        cronica: [...(actualizada.cronica || []), {
+          anio: Number(actualizada.ciclo?.dia || 1),
+          tipo: 'investigacion',
+          texto: `Se completó ${nodo?.nombre || investigacion.id}`,
+        }].slice(-50),
+      };
+      actualizada = incrementarContador(actualizada, 'investigacionesCompletas');
+      investigacionCompletada = true;
+    } else {
+      actualizada = {
+        ...actualizada,
+        investigacionEnCurso: { ...investigacion, progresoSegundos: progreso },
+      };
+    }
+  }
+  if (cruzoAnio) actualizada = registrarAnio(actualizada);
+  return cruzoAnio || investigacionCompletada
+    ? aplicarLogros(actualizada, catalogo.logros)
+    : actualizada;
+}
+
+export function forzarSiguienteEdad(aldea, catalogo) {
+  const dia = Number(aldea.ciclo?.dia || 1);
+  const preparada = {
+    ...aldea,
+    ciclo: { ...aldea.ciclo, dia: dia + 1 },
+    edad: { ...aldea.edad, inicioAnio: dia, duracionAnios: 1 },
+    legado: { ...(aldea.legado || {}) },
+    cronica: Array.isArray(aldea.cronica) ? [...aldea.cronica] : [],
+  };
+  avanzarEdad(preparada, catalogo.edades || {});
+  return aplicarLogros(registrarAnio(preparada), catalogo.logros);
+}
+
+export function dispararEventoDelAnio(aldea, catalogo) {
+  const dia = Number(aldea.ciclo?.dia || 1);
+  const edad = catalogo.edades?.[aldea.edad?.id] || catalogo.edades?.calma || {};
+  const seed = semillaDe(String(aldea._id ?? aldea.id ?? 'aldea'));
+  const tipo = elegirEventoInvierno(seed, dia, edad.pesosEventos);
+  return {
+    ...aldea,
+    eventoNocturno: { tipo, dia },
+  };
+}
+
+export function pasosPorTickDemo(modoDemo, velocidad) {
+  if (!modoDemo) return 1;
+  return [1, 5, 20].includes(Number(velocidad)) ? Number(velocidad) : 1;
+}
+
 export function actualizarAgentesAutonomos(aldea, catalogo) {
-  if ((aldea.ciclo?.segundos || 0) % 10 !== 0) return aldea.aldeanos;
-  const aldeanos = aldea.aldeanos.map((aldeano) => ({ ...aldeano }));
+  const preparados = asegurarAldeaVida(aldea).aldeanos;
+  if ((aldea.ciclo?.segundos || 0) % 10 !== 0) return preparados;
+  const aldeanos = preparados.map((aldeano) => ({ ...aldeano }));
   const aldeaActualizada = { ...aldea, aldeanos };
   const redondear = (valor) => Math.round((valor + Number.EPSILON * Math.abs(valor)) * 100) / 100;
 
   for (let index = 0; index < aldeanos.length; index += 1) {
     const aldeano = aldeanos[index];
+    if (multiplicadorProduccion(aldeano) === 0) continue;
     if (aldeano.modoTrabajo !== 'automatico') continue;
     const resultado = decidir(aldeaActualizada, aldeano, index, catalogo);
     aldeano.trabajo = resultado.eleccion.trabajo;

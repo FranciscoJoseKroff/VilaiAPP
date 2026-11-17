@@ -15,5 +15,33 @@
     "agricultor",
     "minero",
     "guardia"
+  ],
+  "rasgo": [
+    "polivalente",
+    "maderero",
+    "hortelano",
+    "minero",
+    "guardian"
+  ],
+  "edificio": [
+    "aserradero",
+    "granja",
+    "casa",
+    "centroInvestigacion",
+    "granero",
+    "almacen",
+    "molino",
+    "horno",
+    "mina",
+    "observatorio",
+    "taberna",
+    "biblioteca",
+    "torreVigilancia"
+  ],
+  "evento": [
+    "bestias",
+    "helada",
+    "recaudador",
+    "incendio"
   ]
 }

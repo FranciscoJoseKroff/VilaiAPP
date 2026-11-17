@@ -62,7 +62,7 @@ export function elegirSiguienteEdad(semilla, numero, edadActualId, EDADES) {
 }
 
 export function elegirEventoInvierno(semilla, ano, pesosEventos) {
-  const eventos = ['bestias', 'helada', 'recaudador'];
+  const eventos = ['bestias', 'helada', 'recaudador', 'incendio'];
   const pesos = pesosEventos || {};
   const disponibles = eventos.filter((id) => Number(pesos[id] ?? 1) > 0);
   const total = disponibles.reduce((suma, id) => suma + Number(pesos[id] || 0), 0);

@@ -5,6 +5,11 @@ import { useAldea } from '../hooks/useAldea';
 import { puedePagar, redondearADecima, calcularCapacidadesAldea, simularProduccionActiva } from '../game/simulation';
 import { costoDe, efectosActivos, nivelDe, puedeInvestigar } from '../game/investigacion';
 import { decidir } from '../game/cerebro';
+import { incrementarContador } from '../game/estadisticas.js';
+import { aplicarLogros } from '../game/logros.js';
+import { calcularEfectosEdificios } from '../game/buildingEffects.js';
+import { seleccionarEdificiosAfectados } from '../game/eventEffects.js';
+import { etapaVida } from '../game/cicloVida.js';
 
 function aplicarDecisionesAutomaticas(aldea, catalogo) {
   if (!aldea) return aldea;
@@ -12,6 +17,13 @@ function aplicarDecisionesAutomaticas(aldea, catalogo) {
   const aldeaActualizada = { ...aldea, aldeanos };
   for (let index = 0; index < aldeanos.length; index += 1) {
     const aldeano = aldeanos[index];
+    if (etapaVida(aldeano) === 'nino') {
+      aldeano.trabajo = 'libre';
+      aldeano.estado = 'descansando';
+      aldeano.pensamientoActual = 'Aún es niño y no tiene oficio.';
+      aldeano.decision = null;
+      continue;
+    }
     if (aldeano.modoTrabajo !== 'automatico') continue;
     const resultado = decidir(aldeaActualizada, aldeano, index, catalogo || {});
     aldeano.trabajo = resultado.eleccion.trabajo;
@@ -36,10 +48,30 @@ const GameContext = createContext(null);
 
 export function GameProvider({ children }) {
   const auth = useAuth();
-  const game = useAldea(auth.token, auth.setVerificandoSesion, auth.cerrarSesion);
+  const [modoDemo, setModoDemo] = useState(false);
+  const [activandoModoDemo, setActivandoModoDemo] = useState(false);
+  const [velocidadDemo, setVelocidadDemo] = useState(1);
+  const game = useAldea(auth.token, auth.setVerificandoSesion, auth.cerrarSesion, velocidadDemo, modoDemo);
   const { aldea: aldeaEstado, aldeaRef, catalogoRef, setAldea, guardar } = game;
+  const { marcarDemo } = game;
   const [costosMejora, setCostosMejora] = useState({});
   const [confirmarExpedicion, setConfirmarExpedicion] = useState(false);
+
+  const activarModoDemo = useCallback(async () => {
+    if (modoDemo || activandoModoDemo) return;
+    setActivandoModoDemo(true);
+    try {
+      if (await marcarDemo()) setModoDemo(true);
+    } finally {
+      setActivandoModoDemo(false);
+    }
+  }, [marcarDemo, modoDemo, activandoModoDemo]);
+
+  const cambiarVelocidadDemo = useCallback((velocidad) => {
+    if (![1, 5, 20].includes(velocidad)) return;
+    setVelocidadDemo(velocidad);
+    void marcarDemo();
+  }, [marcarDemo]);
 
   const claveNiveles = useMemo(() => (game.aldea?.edificios || [])
     .map((e) => `${e.tipoId}:${e.nivel}`).sort().join('|'), [game.aldea]);
@@ -63,6 +95,10 @@ export function GameProvider({ children }) {
   const asignarTrabajo = useCallback((indice, trabajo) => {
     const aldeaActual = aldeaRef.current || aldeaEstado;
     if (!aldeaActual) return;
+    if (etapaVida(aldeaActual.aldeanos[indice]) === 'nino') {
+      setMensajeSeguro('Los niños todavía no pueden trabajar.');
+      return;
+    }
     const actualizada = { ...aldeaActual, aldeanos: aldeaActual.aldeanos.map((aldeano, posicion) => posicion === indice ? {
       ...aldeano,
       trabajo: trabajo === 'automatico' ? 'libre' : trabajo,
@@ -74,7 +110,7 @@ export function GameProvider({ children }) {
       : actualizada;
     setAldea(conDecision);
     guardar(conDecision, auth.token);
-  }, [aldeaEstado, aldeaRef, catalogoRef, setAldea, guardar, auth.token]);
+  }, [aldeaEstado, aldeaRef, catalogoRef, setAldea, guardar, auth.token, setMensajeSeguro]);
 
   const ponerTodosAuto = useCallback(() => {
     const aldeaActual = aldeaRef.current || aldeaEstado;
@@ -85,7 +121,9 @@ export function GameProvider({ children }) {
         ...aldeano,
         trabajo: 'libre',
         modoTrabajo: 'automatico',
-        pensamientoActual: 'Estoy decidiendo dónde puedo ayudar más.',
+        pensamientoActual: etapaVida(aldeano) === 'nino'
+          ? 'Aún es niño y no tiene oficio.'
+          : 'Estoy decidiendo dónde puedo ayudar más.',
       })),
     };
     const conDecisiones = aplicarDecisionesAutomaticas(actualizada, catalogoRef.current);
@@ -105,6 +143,22 @@ export function GameProvider({ children }) {
       return;
     }
     const existente = aldea.edificios.find((e) => e.tipoId === tipoId);
+    if ((info.requiereEdificio || []).some((requisito) => {
+      const requerido = aldea.edificios.find((edificio) => edificio.tipoId === requisito.tipoId);
+      return !requerido || Number(requerido.nivel || 1) < requisito.nivel;
+    })) {
+      const requisito = info.requiereEdificio.find((item) => {
+        const requerido = aldea.edificios.find((edificio) => edificio.tipoId === item.tipoId);
+        return !requerido || Number(requerido.nivel || 1) < item.nivel;
+      });
+      const nombre = requisito.tipoId === 'centroInvestigacion' ? 'Centro de Investigación' : requisito.tipoId;
+      game.setMensaje(`Construye ${nombre} nivel ${requisito.nivel} para desbloquear ${info.nombre}.`);
+      return;
+    }
+    if (existente && info.maxNivel != null && existente.nivel >= info.maxNivel) {
+      game.setMensaje(`${info.nombre} ya alcanzó su nivel máximo (${info.maxNivel}).`);
+      return;
+    }
     if (!existente) construir(tipoId, info, aldea);
     else mejorar(tipoId, info, existente);
   }
@@ -128,7 +182,15 @@ export function GameProvider({ children }) {
     const cronicaConstruccion = eraPrimeraVez
       ? [...(Array.isArray(aldea.cronica) ? aldea.cronica : []), { anio: Number(aldea.ciclo?.dia || 1), tipo: 'construccion', texto: `Se construyó el primer ${info.nombre.toLowerCase()}` }].slice(-50)
       : (aldea.cronica || []);
-    const actualizada = { ...aldea, recursos, tasasGeneracion, poblacionMaxima, cronica: cronicaConstruccion, arbolInvestigacionDesbloqueado: aldea.arbolInvestigacionDesbloqueado || tipoId === 'centroInvestigacion', edificios: [...aldea.edificios, nuevo] };
+    const actualizada = aplicarLogros(incrementarContador({
+      ...aldea,
+      recursos,
+      tasasGeneracion,
+      poblacionMaxima,
+      cronica: cronicaConstruccion,
+      arbolInvestigacionDesbloqueado: aldea.arbolInvestigacionDesbloqueado || tipoId === 'centroInvestigacion',
+      edificios: [...aldea.edificios, nuevo],
+    }, 'edificiosConstruidos'), game.catalogo?.logros);
     game.setAldea(actualizada);
     setMensajeSeguro(`¡${info.nombre} construido!`);
     game.guardar(actualizada, auth.token);
@@ -149,7 +211,7 @@ export function GameProvider({ children }) {
       if (info.efectoTasa) { const r = info.efectoTasa.recurso; const nueva = info.efectoTasa.base * nuevoNivel; tasas[r] = redondearADecima((tasas[r] || 0) - edificioActual.contribucionTasa + nueva); edificio.contribucionTasa = nueva; }
       if (info.efectoTasaSecundario) { const r = info.efectoTasaSecundario.recurso; const nueva = info.efectoTasaSecundario.base * nuevoNivel; tasas[r] = redondearADecima((tasas[r] || 0) - edificioActual.contribucionTasaSecundaria + nueva); edificio.contribucionTasaSecundaria = nueva; }
       if (info.efectoPoblacion) { const nueva = info.efectoPoblacion * nuevoNivel; poblacionMaxima += nueva - edificioActual.contribucionPoblacion; edificio.contribucionPoblacion = nueva; }
-      const actualizada = { ...actual, recursos, tasasGeneracion: tasas, poblacionMaxima, edificios: actual.edificios.map((e) => e.tipoId === tipoId ? edificio : e) };
+      const actualizada = aplicarLogros({ ...actual, recursos, tasasGeneracion: tasas, poblacionMaxima, edificios: actual.edificios.map((e) => e.tipoId === tipoId ? edificio : e) }, game.catalogo?.logros);
       game.setAldea(actualizada); setMensajeSeguro(`¡${info.nombre} mejorado a Nivel ${nuevoNivel}!`); game.guardar(actualizada, auth.token);
     } catch (e) { setMensajeSeguro(e.message); }
   }
@@ -177,22 +239,18 @@ export function GameProvider({ children }) {
     const legado = costo.reliquias > 0
       ? { ...actual.legado, reliquiasGastadas: (actual.legado?.reliquiasGastadas || 0) + costo.reliquias }
       : actual.legado;
-    const investigaciones = id === 'metalurgia'
-      ? { ...actual.investigaciones, metalurgia: true }
-      : actual.investigaciones;
     const actualizada = {
       ...actual,
       recursos,
       legado,
-      investigaciones,
-      tecnologias: { ...actual.tecnologias, [id]: nivel + 1 },
+      investigacionEnCurso: {
+        id,
+        nivelObjetivo: nivel + 1,
+        progresoSegundos: 0,
+      },
     };
     setAldea(actualizada);
-    setMensajeSeguro(id === 'planosAntiguos'
-      ? 'Planos antiguos desbloqueados: ya puedes construir el observatorio.'
-      : id === 'metalurgia'
-        ? '¡Metalurgia investigada! Tus mineros extraen hierro un 50% más rápido.'
-        : `${nodo.nombre} mejorada a nivel ${nivel + 1}.`);
+    setMensajeSeguro(`Investigación iniciada: ${nodo.nombre}, nivel ${nivel + 1}. Se completará con el paso del tiempo.`);
     guardar(actualizada, auth.token);
   }, [aldeaRef, catalogoRef, setAldea, guardar, auth.token, setMensajeSeguro]);
 
@@ -219,29 +277,47 @@ export function GameProvider({ children }) {
         recursos[recurso] = redondearADecima(Math.max(0, (recursos[recurso] || 0) - cantidad));
       });
     } else if (evento.dano > 0 && edificios.length > 0) {
-      const objetivos = tipoEvento === 'helada' ? ['granja', 'horno'] : ['casa', 'aserradero', 'mina'];
-      const objetivo = edificios.find((edificio) => objetivos.includes(edificio.tipoId)) || edificios[0];
-      const guardias = actual.aldeanos.filter((aldeano) => aldeano.trabajo === 'guardia').length;
+      const afectados = seleccionarEdificiosAfectados(edificios, tipoEvento, evento);
+      const eficaciaRasgos = actual.aldeanos
+        .filter((aldeano) => aldeano.trabajo === 'guardia' && etapaVida(aldeano) !== 'nino')
+        .reduce((total, aldeano) => {
+          const rasgo = game.catalogoRef.current?.rasgosAldeano?.[aldeano.rasgo];
+          return total + 0.1 * (1 + (rasgo?.trabajo === 'guardia' ? Number(rasgo.bono || 0) : 0));
+        }, 0);
       const edadId = actual.edad?.id;
       const edad = game.catalogoRef.current?.edades?.[edadId] || game.catalogoRef.current?.edades?.calma;
-      const eficaciaGuardia = Number(edad?.guardiaEficacia ?? 1);
+      const efectosEdificios = calcularEfectosEdificios(actual, game.catalogoRef.current?.tiposEdificio);
+      const eficaciaGuardia = Number(edad?.guardiaEficacia ?? 1) * efectosEdificios.multiplicadorGuardia;
       const efectos = efectosActivos(actual, game.catalogoRef.current?.arbol || []);
-      const reduccion = Math.min(0.8, efectos.reduccionDanoEventos + guardias * 0.1 * eficaciaGuardia);
+      const reduccion = Math.min(0.8, efectos.reduccionDanoEventos + eficaciaRasgos * eficaciaGuardia);
       const danoEdad = Math.max(1, Number(edad?.danoEventos ?? 1));
       const dano = Math.max(5, Math.round(evento.dano * danoEdad * (1 - reduccion)));
-      objetivo.integridad = Math.max(0, (objetivo.integridad ?? 100) - dano);
-      resultado = `${objetivo.tipoId} quedó al ${objetivo.integridad}% de integridad. Puedes repararlo.`;
+      if (afectados.length) {
+        afectados.forEach((objetivo) => {
+          objetivo.integridad = Math.max(0, (objetivo.integridad ?? 100) - dano);
+        });
+        resultado = `${afectados.map((objetivo) => `${objetivo.tipoId} al ${objetivo.integridad}%`).join(', ')} de integridad. Puedes repararlos.`;
+      } else {
+        resultado = 'No había edificios vulnerables que pudieran alcanzar las llamas.';
+      }
     } else {
       const perdida = evento.perdidaMadera || 15;
       recursos.madera = Math.max(0, (recursos.madera || 0) - perdida);
       resultado = `Perdiste ${perdida} madera durante la noche.`;
     }
-    const nombreEvento = tipoEvento === 'helada' ? 'Helada' : tipoEvento === 'recaudador' ? 'Recaudador' : 'Bestias';
+    const nombreEvento = evento.nombre || tipoEvento;
     const entradaEvento = { anio: Number(actual.ciclo?.dia || 1), tipo: 'evento', texto: defender ? `${nombreEvento}: el poblado defendió el invierno, sin daños` : `${nombreEvento}: ${resultado}` };
     const cronica = [...(Array.isArray(actual.cronica) ? actual.cronica : []), entradaEvento]
       .filter((entrada, indice, lista) => lista.findIndex((otra) => otra.anio === entrada.anio && otra.tipo === entrada.tipo && otra.texto === entrada.texto) === indice)
       .slice(-50);
-    const actualizada = { ...actual, recursos, edificios, cronica, eventoNocturno: { tipo: null, dia: 0 } };
+    const actualizada = aplicarLogros(incrementarContador({
+      ...actual,
+      recursos,
+      edificios,
+      cronica,
+      eventoNocturno: { tipo: null, dia: 0 },
+      eventoPrevisto: { tipo: null, dia: 0, segundosRestantes: 0 },
+    }, defender ? 'eventosDefendidos' : 'eventosAceptados'), game.catalogoRef.current?.logros);
     game.setAldea(actualizada);
     game.setMensaje(resultado);
     game.guardar(actualizada, auth.token);
@@ -254,11 +330,15 @@ export function GameProvider({ children }) {
   const valorContexto = useMemo(() => ({
     ...auth, ...game, auth, costosMejora, capacidades, produccion, arbolDesbloqueado,
     confirmarExpedicion, setConfirmarExpedicion, asignarTrabajo, ponerTodosAuto, tocarEdificio,
+    modoDemo, velocidadDemo, activarModoDemo, cambiarVelocidadDemo,
+    siguienteEstacion: game.siguienteEstacion,
+    forzarCambioEdad: game.forzarCambioEdad,
+    dispararEventoAnual: game.dispararEventoAnual,
     investigar, repararEdificio,
     resolverEventoNocturno,
   }), [auth, game, costosMejora, capacidades, produccion, arbolDesbloqueado, confirmarExpedicion,
     asignarTrabajo, ponerTodosAuto, tocarEdificio, investigar,
-    repararEdificio, resolverEventoNocturno]);
+    repararEdificio, resolverEventoNocturno, modoDemo, velocidadDemo, activarModoDemo, cambiarVelocidadDemo]);
 
   return <GameContext.Provider value={valorContexto}>{children}</GameContext.Provider>;
 }

@@ -22,7 +22,7 @@ const NOMBRES_RECURSOS = {
 };
 const NOMBRES_ESTACIONES = { primavera: 'primavera', verano: 'verano', otono: 'otoño', otoño: 'otoño', invierno: 'invierno' };
 const NOMBRES_DESBLOQUEOS = { observatorio: 'el Observatorio antiguo' };
-const NOMBRES_EVENTOS = { bestias: 'bestias', helada: 'heladas', recaudador: 'recaudadores' };
+const NOMBRES_EVENTOS = { bestias: 'bestias', helada: 'heladas', recaudador: 'recaudadores', incendio: 'incendios' };
 const ARBOL_VACIO = [];
 
 function numeroBonito(valor) {
@@ -250,6 +250,10 @@ export default function InvestigacionTab() {
   const reliquias = Number(aldea?.legado?.reliquias) || 0;
   const gastadas = Number(aldea?.legado?.reliquiasGastadas) || 0;
   const disponibles = Math.max(0, reliquias - gastadas);
+  const investigacionActiva = arbol.find((nodo) => nodo.id === aldea?.investigacionEnCurso?.id);
+  const progresoInvestigacion = Number(aldea?.investigacionEnCurso?.progresoSegundos || 0);
+  const duracionInvestigacion = Number(catalogo?.duracionInvestigacionSegundos || 60)
+    * Number(aldea?.investigacionEnCurso?.nivelObjetivo || 1);
 
   // Sugerido minimiza la suma de coste/recursos actuales entre nodos ya investigables.
   const sugeridoId = useMemo(() => {
@@ -303,6 +307,14 @@ export default function InvestigacionTab() {
               <AppIcon name="flask" size={20} color={theme.colors.acento} />
               <Text style={styles.summaryText}>Centro de Investigación · nivel {centroNivel}</Text>
             </View>
+            {investigacionActiva ? (
+              <View style={styles.summaryItem}>
+                <AppIcon name="book-open-page-variant" size={20} color={theme.colors.acento} />
+                <Text style={styles.summaryText}>
+                  En curso: {investigacionActiva.nombre} · {Math.min(100, Math.floor(progresoInvestigacion / duracionInvestigacion * 100))} %
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.bonuses}>

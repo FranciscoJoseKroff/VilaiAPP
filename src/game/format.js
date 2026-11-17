@@ -17,10 +17,13 @@ const NOMBRES_EDIFICIOS = {
   centroInvestigacion: 'Centro de Investigación',
   mina: 'Mina',
   observatorio: 'Observatorio antiguo',
+  taberna: 'Taberna',
+  biblioteca: 'Biblioteca',
+  torreVigilancia: 'Torre de Vigilancia',
 };
 
 const NOMBRES_EVENTOS = {
-  bestias: 'bestias', helada: 'heladas', recaudador: 'recaudadores',
+  bestias: 'bestias', helada: 'heladas', recaudador: 'recaudadores', incendio: 'incendios',
 };
 
 function numeroBonito(valor) {
@@ -106,6 +109,9 @@ export function formatearCosto(costo) {
 
 export function describirEdificio(info) {
   const nombres = { madera: 'madera', comida: 'comida', oro: 'oro', trigo: 'trigo', harina: 'harina', pan: 'pan', hierro: 'hierro' };
+  if (info.efectoProduccionGeneral) return `+${(info.efectoProduccionGeneral * 100).toFixed(0)} % de producción general por nivel · máximo ${info.maxNivel}`;
+  if (info.efectoVelocidadInvestigacion) return `+${(info.efectoVelocidadInvestigacion * 100).toFixed(0)} % de velocidad de investigación por nivel · máximo ${info.maxNivel}`;
+  if (info.avisoEventoSegundos) return `+${info.avisoEventoSegundos} s de aviso y +${(info.multiplicadorGuardia * 100).toFixed(0)} % de eficacia de guardia por nivel · máximo ${info.maxNivel}`;
   if (info.efectoCapacidad) {
     return `Almacenamiento +${Object.entries(info.efectoCapacidad)
       .map(([recurso, cantidad]) => `${cantidad} ${nombres[recurso] || recurso}`)

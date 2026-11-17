@@ -8,13 +8,13 @@ import PixelPanel from './pixel/PixelPanel';
 import PixelButton from './pixel/PixelButton';
 import PixelBar from './pixel/PixelBar';
 
-export function BuildingCard({ buildingId, info, existente, cost, available = {}, costLoading = false, blocked = false, canPay = false, effect, onAction }) {
+export function BuildingCard({ buildingId, info, existente, cost, available = {}, costLoading = false, blocked = false, blockedReason, maxLevelReached = false, canPay = false, effect, onAction }) {
   const haptics = useHapticsFeedback();
   const sonido = useSonido();
   const integridad = existente ? (existente.integridad ?? 100) : null;
   const nextLevel = existente ? existente.nivel + 1 : null;
   const tecnologiaBonita = ({ planosAntiguos: 'Planos antiguos', metalurgia: 'Metalurgia' })[info.requiereTecnologia] || info.requiereTecnologia;
-  const reason = blocked ? `Requiere: ${tecnologiaBonita}` : costLoading ? 'Calculando costo...' : !canPay && cost ? 'Faltan recursos' : null;
+  const reason = blocked ? (blockedReason || `Requiere: ${tecnologiaBonita}`) : maxLevelReached ? `Nivel máximo: ${info.maxNivel}` : costLoading ? 'Calculando costo...' : !canPay && cost ? 'Faltan recursos' : null;
 
   return (
     <PixelPanel variant={blocked ? 'normal' : 'elevada'} style={[styles.card, blocked && styles.blocked]} accessibilityLabel={`Edificio ${info.nombre}`}>
@@ -37,7 +37,7 @@ export function BuildingCard({ buildingId, info, existente, cost, available = {}
       <Text style={styles.effect}>{effect}</Text>
 
       {blocked ? (
-        <Text style={styles.lockedText}>Requiere: {tecnologiaBonita}</Text>
+        <Text style={styles.lockedText}>{reason}</Text>
       ) : costLoading ? (
         <View style={styles.skeletonRow}><View style={styles.skeletonChip} /><View style={styles.skeletonChip} /></View>
       ) : cost ? (
@@ -49,7 +49,7 @@ export function BuildingCard({ buildingId, info, existente, cost, available = {}
           {reason && !costLoading ? <Text style={styles.reason}>{reason}</Text> : null}
           <PixelButton
             accessibilityLabel={existente ? `Mejorar ${info.nombre} a nivel ${nextLevel}` : `Construir ${info.nombre}`}
-            disabled={costLoading || !cost || !canPay}
+            disabled={costLoading || maxLevelReached || !cost || !canPay}
             style={styles.button}
             onPress={() => { haptics.light(); sonido.reproducir(existente ? 'mejorar' : 'construir'); onAction(); }}
           >

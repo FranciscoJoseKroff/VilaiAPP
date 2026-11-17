@@ -32,3 +32,15 @@ El backend (Node/Express/MongoDB) está en otro proyecto y no se toca desde aqu�
 - Nunca imprimas ni escribas secretos (MONGODB_URI, JWT_SECRET, claves) en código, logs ni commits.
 - Los cambios de API son aditivos; no quites campos ni renombres campos del esquema.
 - Los límites de peticiones no deben bloquear a usuarios legítimos que comparten red (aula, demo).
+
+- Todo campo nuevo de la aldea o del usuario se declara en el esquema de Mongoose (el modo estricto
+  descarta lo que no está declarado), con migración idempotente y una prueba de guardar y leer.
+- Todo valor nuevo de un enum (estado, trabajo, edificio, evento, rasgo) se agrega en el esquema,
+  en src/simulacion/aldeanoEnums.js y en los vectores de paridad; el test de paridad debe pasar.
+- La lógica compartida (tiempo, IA, investigación, logros, estadísticas) es idéntica en front y
+  back y no usa Math.random().
+- Las claves (LLM, base de datos) solo van en variables de entorno del servidor; nunca en el repo
+  ni en variables EXPO_PUBLIC_*.
+- Los límites de peticiones se mantienen; cada endpoint nuevo lleva su propio límite por usuario.
+- Ningún dato personal (correo, nombre real) se envía a servicios externos.
+- Cuando un prompt diga "alto y reporta", detente, muéstrame el diagnóstico y espera mi "ok".

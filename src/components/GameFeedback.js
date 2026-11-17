@@ -23,13 +23,43 @@ export function GameFeedback() {
   const ultimoMensaje = useRef('');
   const [offlineVisible, setOfflineVisible] = useState(false);
   const offlineHandled = useRef(false);
+  const logrosAnteriores = useRef(null);
+  const logrosNotificados = useRef(new Set());
   const reliquiasAnteriores = useRef(null);
   const ultimaEdad = useRef(game.aldea?.edad?.id);
+  const ultimoEventoPrevisto = useRef('');
   const ultimaEstacion = useRef(estacionEn(game.aldea?.ciclo?.segundos || 0).id);
   const [celebracion, setCelebracion] = useState(false);
   const edadIdActual = game.aldea?.edad?.id;
   const segundosActuales = game.aldea?.ciclo?.segundos || 0;
   const reliquiasActuales = game.aldea?.legado?.reliquias;
+
+  useEffect(() => {
+    const logros = game.aldea?.logros;
+    if (!Array.isArray(logros)) return;
+    const idsActuales = new Set(logros.map((logro) => logro.id));
+    const idsNuevos = logrosAnteriores.current === null
+      ? []
+      : [...idsActuales].filter((id) => !logrosAnteriores.current.has(id));
+    logrosAnteriores.current = idsActuales;
+    const logrosOffline = new Set(game.resumenOffline?.logrosDesbloqueados || []);
+    const nombres = new Map((game.catalogo?.logros || []).map((logro) => [logro.id, logro.nombre]));
+    const segundosAusente = Number(game.resumenOffline?.segundosAusente || 0);
+    const logrosCortosOffline = segundosAusente <= 60 ? [...logrosOffline].filter((id) => idsActuales.has(id)) : [];
+    const notificar = [...new Set([
+      ...idsNuevos.filter((id) => !logrosOffline.has(id)),
+      ...logrosCortosOffline,
+    ])].filter((id) => !logrosNotificados.current.has(id));
+    notificar.forEach((id) => {
+      logrosNotificados.current.add(id);
+      toast.showToast(`¡Logro desbloqueado: ${nombres.get(id) || id}!`, 'success');
+      haptics.success();
+      sonido.reproducir('edad nueva');
+    });
+    if (notificar.length) {
+      setTimeout(() => setCelebracion(true), 0);
+    }
+  }, [game.aldea?.logros, game.catalogo?.logros, game.resumenOffline?.logrosDesbloqueados, game.resumenOffline?.segundosAusente, toast, haptics, sonido]);
 
   useEffect(() => {
     if (!edadIdActual) return;
@@ -54,6 +84,20 @@ export function GameFeedback() {
     }
     ultimaEstacion.current = estacionId;
   }, [edadIdActual, segundosActuales, game.catalogo, toast, haptics, sonido]);
+
+  useEffect(() => {
+    const previsto = game.aldea?.eventoPrevisto;
+    if (!previsto?.tipo) {
+      ultimoEventoPrevisto.current = '';
+      return;
+    }
+    const clave = `${previsto.tipo}:${previsto.dia}`;
+    if (ultimoEventoPrevisto.current === clave) return;
+    ultimoEventoPrevisto.current = clave;
+    const nombre = game.catalogo?.eventosNocturnos?.[previsto.tipo]?.nombre || previsto.tipo;
+    toast.showToast(`Aviso de la torre: ${nombre} en ${Math.max(0, Number(previsto.segundosRestantes) || 0)} s.`, 'warning');
+    haptics.medium();
+  }, [game.aldea?.eventoPrevisto, game.catalogo?.eventosNocturnos, toast, haptics]);
 
   useEffect(() => {
     if (reliquiasActuales == null) return;
@@ -107,6 +151,14 @@ export function GameFeedback() {
     const temporizador = setTimeout(() => setOfflineVisible(true), 0);
     return () => clearTimeout(temporizador);
   }, [game.resumenOffline]);
+
+  useEffect(() => {
+    if (!offlineVisible || !game.resumenOffline?.logrosDesbloqueados?.length) return;
+    haptics.success();
+    sonido.reproducir('edad nueva');
+    const temporizador = setTimeout(() => setCelebracion(true), 0);
+    return () => clearTimeout(temporizador);
+  }, [offlineVisible, game.resumenOffline?.logrosDesbloqueados, haptics, sonido]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -178,6 +230,7 @@ export function GameFeedback() {
     <OfflineModal
       visible={offlineVisible}
       resumen={game.resumenOffline}
+      catalogo={game.catalogo}
       onRecoger={() => {
         setOfflineVisible(false);
         setVuelo({ ...game.resumenOffline.recursosGenerados });
@@ -186,12 +239,13 @@ export function GameFeedback() {
   </>;
 }
 
-function OfflineModal({ visible, resumen, onRecoger }) {
+function OfflineModal({ visible, resumen, catalogo, onRecoger }) {
   const seconds = Number(resumen?.segundosAusente || resumen?.segundosAplicados || 0);
   const gains = resumen?.recursosGenerados || {};
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const time = hours > 0 ? `${hours} h${minutes ? ` ${minutes} min` : ''}` : minutes > 0 ? `${minutes} min` : 'menos de 1 min';
+  const nombresLogros = new Map((catalogo?.logros || []).map((logro) => [logro.id, logro.nombre]));
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.offlineBackdrop}><View style={styles.offlineModal}>
@@ -200,6 +254,9 @@ function OfflineModal({ visible, resumen, onRecoger }) {
         <Text style={styles.offlineTime}>Estuviste ausente {time}.</Text>
         {resumen?.alcanzoTope8h ? <Text style={styles.offlineAge}>Se alcanzó el límite de 8 horas.</Text> : null}
         {Number(resumen?.aldeanosLlegados || 0) > 0 ? <Text style={styles.offlineAge}>{resumen.aldeanosLlegados} aldeano{resumen.aldeanosLlegados === 1 ? '' : 's'} llegó{resumen.aldeanosLlegados === 1 ? '' : 'ron'}.</Text> : null}
+        {(resumen?.logrosDesbloqueados || []).map((id) => (
+          <Text key={id} style={styles.offlineAge}>Logro desbloqueado: {nombresLogros.get(id) || id}</Text>
+        ))}
         <View style={styles.gains}>{Object.entries(gains).map(([resource, amount]) => <View key={resource} style={styles.gain}><AppIcon name={resource === 'madera' ? 'tree' : resource === 'comida' ? 'food-apple' : resource === 'oro' ? 'currency-usd' : 'package-variant'} size={18} color={theme.colors.acento} /><ContadorAnimado value={Number(amount)} style={styles.gainText} formato={(valor) => `+${Math.round(valor)} ${resource}`} /></View>)}</View>
         <Pressable accessibilityRole="button" style={styles.offlineButton} onPress={onRecoger}><Text style={styles.offlineButtonText}>Recoger</Text></Pressable>
       </View></View>

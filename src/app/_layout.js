@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GameProvider } from '../context/GameContext';
+import { CalidadGraficaProvider } from '../context/CalidadGraficaContext';
 import { ToastProvider } from '../context/ToastContext';
 import { HapticsProvider } from '../context/HapticsContext';
 import { SonidoProvider } from '../servicios/sonidos';
@@ -15,6 +16,8 @@ import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { LoadSkiaWeb } from '@shopify/react-native-skia/lib/module/web/LoadSkiaWeb';
 import { theme } from '../../theme';
+import { ErrorBoundaryGlobal } from '../components/ErrorBoundaryGlobal';
+import { instalarCapturaErroresWeb, registrarError } from '../diagnostico/registro';
 
 export default function RootLayout() {
   const [fontsLoaded, fontsError] = useFonts({
@@ -31,10 +34,13 @@ export default function RootLayout() {
       locateFile: (archivo) => archivo.endsWith('.wasm') ? '/canvaskit.wasm' : archivo,
     }).then(() => activo && setSkiaLista(true)).catch((error) => {
       console.error('No se pudo cargar Skia Web:', error);
+      registrarError('Skia Web', error?.message || 'No se pudo cargar el motor gráfico.');
       if (activo) setSkiaLista(true);
     });
     return () => { activo = false; };
   }, []);
+
+  useEffect(() => instalarCapturaErroresWeb(), []);
 
   if ((!fontsLoaded && !fontsError) || !skiaLista) {
     return (
@@ -46,22 +52,26 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-      <HapticsProvider>
-        <SonidoProvider>
-          <ToastProvider>
-            <GameProvider>
-              <StatusBar style="light" />
-              <BottomSheetModalProvider>
-                <Stack screenOptions={{ headerShown: false }} />
-              </BottomSheetModalProvider>
-            </GameProvider>
-          </ToastProvider>
-        </SonidoProvider>
-      </HapticsProvider>
-    </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundaryGlobal>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <HapticsProvider>
+            <SonidoProvider>
+              <ToastProvider>
+                <CalidadGraficaProvider>
+                  <GameProvider>
+                    <StatusBar style="light" />
+                    <BottomSheetModalProvider>
+                      <Stack screenOptions={{ headerShown: false }} />
+                    </BottomSheetModalProvider>
+                  </GameProvider>
+                </CalidadGraficaProvider>
+              </ToastProvider>
+            </SonidoProvider>
+          </HapticsProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundaryGlobal>
   );
 }
 

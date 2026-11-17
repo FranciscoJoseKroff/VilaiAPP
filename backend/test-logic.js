@@ -33,6 +33,7 @@ const {
   RASGOS_ALDEANO,
   ESTACIONES,
   EDADES,
+  LOGROS,
 } = require('./src/utils/villageDefaults');
 const { estacionEn, multiplicadoresDeEstacion, semillaDe, elegirSiguienteEdad, duracionDeEdad, avanzarEdad, elegirEventoInvierno } = require('./src/utils/tiempo');
 const { simularSegundo } = require('./src/utils/gameSimulation');
@@ -237,7 +238,7 @@ async function correrTests() {
   };
   simularSegundo(estadoAlAnochecer);
   assert.strictEqual(estadoAlAnochecer.ciclo.segundos, 120);
-  assert(['bestias', 'helada', 'recaudador'].includes(estadoAlAnochecer.eventoNocturno.tipo));
+  assert(['bestias', 'helada', 'recaudador', 'incendio'].includes(estadoAlAnochecer.eventoNocturno.tipo));
   assert.strictEqual(estadoAlAnochecer.recursos.madera, 0.8);
   console.log('OK: anochecer inicia un evento y reduce la producción');
 
@@ -426,6 +427,14 @@ async function correrTests() {
     recursos: { madera: 10, comida: 5, oro: 0 },
     tasasGeneracion: { toObject: () => ({ madera: 0.4, comida: 0.5, oro: 0 }) },
     edificios: [{ tipoId: 'almacen', nivel: 5 }, { tipoId: 'granero', nivel: 5 }],
+    aldeanos: Array.from({ length: 3 }, (_, indice) => ({
+      _id: `sin-trabajo-${indice}`,
+      nombre: `Vecino ${indice + 1}`,
+      edadAnios: 20,
+      esperanza: 82,
+      trabajo: 'libre',
+      modoTrabajo: 'manual',
+    })),
     ciclo: { segundos: 0, dia: 1 },
     eventoNocturno: { tipo: null, dia: 0 },
     tecnologias: { herramientas: 0, logistica: 0, defensa: 0, planosAntiguos: 0 },
@@ -435,7 +444,7 @@ async function correrTests() {
   assert(Math.abs(ganancias.madera - 1957.9) < 30, 'la ganancia offline de madera se mantiene cercana al balance esperado');
   assert(Math.abs(aldeaFalsa.recursos.madera - (10 + 1957.9)) < 30);
   assert.strictEqual(aldeaFalsa.ciclo.dia, 21);
-  assert(['bestias', 'helada', 'recaudador'].includes(aldeaFalsa.eventoNocturno.tipo));
+  assert(['bestias', 'helada', 'recaudador', 'incendio'].includes(aldeaFalsa.eventoNocturno.tipo));
   assert(aldeaFalsa.ultimoGuardado > haceUnaHora, 'ultimoGuardado debe actualizarse');
   console.log('OK: progreso offline calcula ganancias y actualiza ultimoGuardado');
 
@@ -532,6 +541,7 @@ async function correrTests() {
         segundosAplicados: 0,
         recursosGenerados: {},
         aldeanosLlegados: 0,
+        logrosDesbloqueados: [],
         alcanzoTope8h: false,
       },
     }
@@ -548,10 +558,18 @@ async function correrTests() {
   };
   const resumenOchoHoras = aplicarProgresoInactivo(aldeaOchoHoras).resumenTiempo;
   assert.strictEqual(aldeaOchoHoras.ciclo.dia, 161);
-  assert.strictEqual(aldeaOchoHoras.legado.reliquias, resumenOchoHoras.cambios.filter((cambio) => cambio.tipo === 'reliquia').length);
+  const reliquiasDeLogros = (aldeaOchoHoras.logros || []).reduce((total, desbloqueado) => (
+    total + Number(LOGROS.find((logro) => logro.id === desbloqueado.id)?.premioReliquias || 0)
+  ), 0);
+  assert(aldeaOchoHoras.legado.reliquias >= (
+    resumenOchoHoras.cambios.filter((cambio) => cambio.tipo === 'reliquia').length + reliquiasDeLogros
+  ));
   assert(aldeaOchoHoras.legado.reliquias > 0);
   assert(aldeaOchoHoras.edad?.id);
   assert(aldeaOchoHoras.cronica.length <= 50);
+  assert.strictEqual(aldeaOchoHoras.estadisticas.serie.length, 120);
+  assert.strictEqual(aldeaOchoHoras.estadisticas.serie[0].a, 42);
+  assert.strictEqual(aldeaOchoHoras.estadisticas.serie.at(-1).a, 161);
   console.log('OK: 8 h offline producen el año 161, edades y crónica limitada');
 
   const reliquiasAntesDeRecargar = aldeaOchoHoras.legado.reliquias;
@@ -638,8 +656,9 @@ async function correrTests() {
     recursos: { madera: 0, comida: 0, oro: 0 },
     tasasGeneracion: { toObject: () => ({ madera: 1, comida: 0, oro: 0 }) },
     save: async () => { guardados += 1; },
+    toObject() { return { ...this }; },
   };
-  Aldea.findOne = async () => aldeaExistente;
+  Aldea.findOne = () => ({ select: async () => aldeaExistente });
 
   const resObtener = crearResFalso();
   await villageController.obtenerAldea({ usuarioId: 'usuario123' }, resObtener);
@@ -655,14 +674,16 @@ async function correrTests() {
     recursos: { madera: 0, comida: 0, oro: 0 },
     tasasGeneracion: { toObject: () => ({ madera: 0, comida: 0, oro: 0 }) },
     save: async () => {},
+    toObject() { return { ...this }; },
   };
-  Aldea.findOne = async () => aldeaAntiguaVacia;
+  Aldea.findOne = () => ({ select: async () => aldeaAntiguaVacia });
   const resAldeaAntigua = crearResFalso();
   await villageController.obtenerAldea({ usuarioId: 'usuario123' }, resAldeaAntigua);
   assert.strictEqual(resAldeaAntigua.body.aldea.recursos.madera, 20);
   console.log('OK: aldea antigua vacía recibe madera inicial para empezar');
 
   // --- 7. villageController.guardarAldea nunca deja pisar el dueño del documento ---
+  Aldea.findOne = () => ({ select: async () => aldeaAntiguaVacia });
   let datosRecibidosEnUpdate = null;
   Aldea.findOneAndUpdate = async (filtro, datos) => {
     datosRecibidosEnUpdate = datos;
@@ -671,7 +692,7 @@ async function correrTests() {
 
   const resGuardar = crearResFalso();
   await villageController.guardarAldea(
-    { usuarioId: 'usuario123', body: { usuario: 'otro_usuario_hackeado', recursos: { madera: 999, comida: 0, oro: 0 } } },
+    { usuarioId: 'usuario123', body: { usuario: 'otro_usuario_hackeado', recursos: { madera: 99, comida: 0, oro: 0 } } },
     resGuardar
   );
   assert.strictEqual(resGuardar.statusCode, 200);
@@ -717,7 +738,7 @@ async function correrTests() {
   console.log('OK: el PUT conserva edad y crónica');
 
   for (const [edadId, edad] of Object.entries(EDADES)) {
-    const conteo = { bestias: 0, helada: 0, recaudador: 0 };
+    const conteo = { bestias: 0, helada: 0, recaudador: 0, incendio: 0 };
     const pesos = edad.pesosEventos;
     const totalPesos = Object.values(pesos).reduce((suma, peso) => suma + peso, 0);
     for (let ano = 1; ano <= 10000; ano += 1) {

@@ -2,6 +2,8 @@
 // valores de Nivel 1; para niveles superiores se recalculan con las funciones
 // costoSiguienteNivel / tiempoSiguienteNivel de más abajo (mejora procedural).
 const { efectosActivos, RELIQUIAS } = require('./investigacion');
+const { crearEstadisticasIniciales } = require('./estadisticas');
+const { CICLO_VIDA, asegurarAldeaVida } = require('./cicloVida');
 
 const TIPOS_EDIFICIO = {
   aserradero: {
@@ -65,6 +67,32 @@ const TIPOS_EDIFICIO = {
     efectoTasa: { recurso: 'oro', base: 0.2 },
     requiereTecnologia: 'planosAntiguos',
   },
+  taberna: {
+    nombre: 'Taberna',
+    descripcion: 'Mejora el ánimo y la producción general de la aldea.',
+    costoBase: { madera: 110, comida: 80 },
+    tiempoConstruccion: 8,
+    maxNivel: 5,
+    efectoProduccionGeneral: 0.02,
+  },
+  biblioteca: {
+    nombre: 'Biblioteca',
+    descripcion: 'Acelera las investigaciones en curso.',
+    costoBase: { madera: 160, hierro: 20, pan: 40 },
+    tiempoConstruccion: 10,
+    maxNivel: 5,
+    requiereEdificio: [{ tipoId: 'centroInvestigacion', nivel: 2 }],
+    efectoVelocidadInvestigacion: 0.05,
+  },
+  torreVigilancia: {
+    nombre: 'Torre de Vigilancia',
+    descripcion: 'Anticipa eventos y mejora la eficacia de los guardias.',
+    costoBase: { madera: 130, hierro: 25 },
+    tiempoConstruccion: 9,
+    maxNivel: 5,
+    avisoEventoSegundos: 10,
+    multiplicadorGuardia: 0.1,
+  },
 };
 
 const CAPACIDADES_BASE = {
@@ -85,6 +113,7 @@ const MADERA_INICIAL = 20;
 const PRODUCCION_TRABAJADOR = 0.2;
 const SEGUNDOS_DIA = 120;
 const SEGUNDOS_NOCHE = 60;
+const DURACION_INVESTIGACION_SEGUNDOS = 60;
 const ESTACIONES = {
   primavera: { nombre: 'Primavera', inicio: 0, duracion: 40, generacion: 1.00, recursos: { comida: 1.10 }, icono: 'flower' },
   verano: { nombre: 'Verano', inicio: 40, duracion: 40, generacion: 1.05, recursos: { madera: 1.10 }, icono: 'white-balance-sunny' },
@@ -92,18 +121,19 @@ const ESTACIONES = {
   invierno: { nombre: 'Invierno', inicio: 120, duracion: 60, generacion: 0.80, recursos: { comida: 0.90 }, pesosIA: { guardia: 0.15, mineroSinPan: -0.15 }, icono: 'snowflake' },
 };
 const EDADES = {
-  calma: { nombre: 'Edad de la Calma', duracionAnios: [8, 14], pesoSeleccion: 2, generacion: 1, recursos: {}, danoEventos: 1, guardiaEficacia: 1, pesosEventos: { bestias: 1, helada: 1, recaudador: 1 }, pesosIA: {}, icono: 'weather-partly-cloudy', descripcion: 'Tiempos tranquilos. Nada cambia.' },
-  abundancia: { nombre: 'Edad de la Abundancia', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { comida: 1.2, trigo: 1.2 }, danoEventos: 0.8, guardiaEficacia: 1, pesosEventos: { bestias: 0.5, helada: 0.5, recaudador: 2 }, pesosIA: { agricultor: 0.15 }, icono: 'basket', descripcion: 'Las cosechas rinden más, pero atraes a los recaudadores.' },
-  hielo: { nombre: 'Edad del Hielo', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { comida: 0.85, madera: 0.9 }, danoEventos: 1, guardiaEficacia: 1, pesosEventos: { bestias: 0.5, helada: 3, recaudador: 0.5 }, pesosIA: { agricultor: 0.15 }, icono: 'snowflake-variant', descripcion: 'Heladas frecuentes y cosechas escasas.' },
-  ceniza: { nombre: 'Edad de la Ceniza', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { madera: 0.8, hierro: 1.25 }, danoEventos: 1.3, guardiaEficacia: 1, pesosEventos: { bestias: 1, helada: 0.5, recaudador: 1.5 }, pesosIA: { lenador: 0.10, minero: 0.15 }, icono: 'volcano', descripcion: 'La tierra arde: menos madera, más hierro y más daño.' },
-  sombras: { nombre: 'Edad de las Sombras', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 0.95, recursos: {}, danoEventos: 1, guardiaEficacia: 2, pesosEventos: { bestias: 3, helada: 0.5, recaudador: 1 }, pesosIA: { guardia: 0.15 }, icono: 'weather-night', descripcion: 'Más bestias, pero los guardias valen el doble.' },
-  descubrimientos: { nombre: 'Edad de los Descubrimientos', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { hierro: 1.2, oro: 1.3, comida: 0.95 }, danoEventos: 1, guardiaEficacia: 1, pesosEventos: { bestias: 1, helada: 1, recaudador: 1 }, pesosIA: {}, icono: 'telescope', descripcion: 'Más hierro y oro, a costa de algo de comida.' },
+  calma: { nombre: 'Edad de la Calma', duracionAnios: [8, 14], pesoSeleccion: 2, generacion: 1, recursos: {}, danoEventos: 1, guardiaEficacia: 1, pesosEventos: { bestias: 1, helada: 1, recaudador: 1, incendio: 1 }, pesosIA: {}, icono: 'weather-partly-cloudy', descripcion: 'Tiempos tranquilos. Nada cambia.' },
+  abundancia: { nombre: 'Edad de la Abundancia', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { comida: 1.2, trigo: 1.2 }, danoEventos: 0.8, guardiaEficacia: 1, pesosEventos: { bestias: 0.5, helada: 0.5, recaudador: 2, incendio: 1 }, pesosIA: { agricultor: 0.15 }, icono: 'basket', descripcion: 'Las cosechas rinden más, pero atraes a los recaudadores.' },
+  hielo: { nombre: 'Edad del Hielo', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { comida: 0.85, madera: 0.9 }, danoEventos: 1, guardiaEficacia: 1, pesosEventos: { bestias: 0.5, helada: 3, recaudador: 0.5, incendio: 0.3 }, pesosIA: { agricultor: 0.15 }, icono: 'snowflake-variant', descripcion: 'Heladas frecuentes y cosechas escasas.' },
+  ceniza: { nombre: 'Edad de la Ceniza', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { madera: 0.8, hierro: 1.25 }, danoEventos: 1.3, guardiaEficacia: 1, pesosEventos: { bestias: 1, helada: 0.5, recaudador: 1.5, incendio: 3 }, pesosIA: { lenador: 0.10, minero: 0.15 }, icono: 'volcano', descripcion: 'La tierra arde: menos madera, más hierro y más daño.' },
+  sombras: { nombre: 'Edad de las Sombras', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 0.95, recursos: {}, danoEventos: 1, guardiaEficacia: 2, pesosEventos: { bestias: 3, helada: 0.5, recaudador: 1, incendio: 1 }, pesosIA: { guardia: 0.15 }, icono: 'weather-night', descripcion: 'Más bestias, pero los guardias valen el doble.' },
+  descubrimientos: { nombre: 'Edad de los Descubrimientos', duracionAnios: [6, 10], pesoSeleccion: 1, generacion: 1, recursos: { hierro: 1.2, oro: 1.3, comida: 0.95 }, danoEventos: 1, guardiaEficacia: 1, pesosEventos: { bestias: 1, helada: 1, recaudador: 1, incendio: 1 }, pesosIA: {}, icono: 'telescope', descripcion: 'Más hierro y oro, a costa de algo de comida.' },
 };
 const RASGOS_ALDEANO = {
   polivalente: { nombre: 'Polivalente', trabajo: null, bono: 0.1 },
   maderero: { nombre: 'Maderero', trabajo: 'lenador', bono: 0.25 },
   hortelano: { nombre: 'Hortelano', trabajo: 'agricultor', bono: 0.25 },
   minero: { nombre: 'Minero nato', trabajo: 'minero', bono: 0.25 },
+  guardian: { nombre: 'Guardián', trabajo: 'guardia', bono: 0.25 },
 };
 const TECNOLOGIAS = {
   herramientas: { nombre: 'Herramientas calibradas', costoBase: { madera: 40, comida: 25 }, factorCosto: 1.6 },
@@ -154,7 +184,22 @@ const EVENTOS_NOCTURNOS = {
   bestias: { nombre: 'Bestias en el lindero', costoDefensa: { madera: 20, comida: 10 }, dano: 24 },
   helada: { nombre: 'Helada nocturna', costoDefensa: { madera: 25 }, dano: 20 },
   recaudador: { nombre: 'Recaudador del camino', costoDefensa: { comida: 15, madera: 10 }, dano: 0, perdidaMadera: 20 },
+  incendio: { nombre: 'Incendio', descripcion: 'Las llamas amenazan el aserradero, las casas y el granero.', costoDefensa: { madera: 30 }, dano: 28, edificiosObjetivo: ['aserradero', 'casa', 'granero'] },
 };
+const LOGROS = [
+  { id: 'primerAldeano', nombre: 'Primer hogar', descripcion: 'Da la bienvenida a tu primer aldeano.', icono: 'trophy', meta: { tipo: 'aldeanos', valor: 1 }, premioReliquias: 0 },
+  { id: 'aldeaDeDiez', nombre: 'Pequeña comunidad', descripcion: 'Reúne a diez aldeanos en tu aldea.', icono: 'village', meta: { tipo: 'aldeanos', valor: 10 }, premioReliquias: 0 },
+  { id: 'primeraEdad', nombre: 'El tiempo pasa', descripcion: 'Sobrevive a tu primera edad.', icono: 'crown', meta: { tipo: 'edades', valor: 1 }, premioReliquias: 0 },
+  { id: 'tresEdades', nombre: 'Eras de la aldea', descripcion: 'Sobrevive a tres edades.', icono: 'ages', meta: { tipo: 'edades', valor: 3 }, premioReliquias: 0 },
+  { id: 'defensor', nombre: 'Defensor del hogar', descripcion: 'Defiende cinco eventos nocturnos.', icono: 'shield', meta: { tipo: 'eventosDefendidos', valor: 5 }, premioReliquias: 1 },
+  { id: 'metalurgico', nombre: 'Forjador', descripcion: 'Investiga Metalurgia.', icono: 'anvil', meta: { tipo: 'tecnologia', id: 'metalurgia', valor: 1 }, premioReliquias: 0 },
+  { id: 'sabio', nombre: 'Sabiduría compartida', descripcion: 'Investiga tres nodos del árbol.', icono: 'bookCover', meta: { tipo: 'nodosInvestigados', valor: 3 }, premioReliquias: 1 },
+  { id: 'constructor', nombre: 'Manos constructoras', descripcion: 'Construye quince edificios.', icono: 'hammer', meta: { tipo: 'edificiosConstruidos', valor: 15 }, premioReliquias: 0 },
+  { id: 'hogar', nombre: 'Hogar duradero', descripcion: 'Mejora una casa hasta el nivel 5.', icono: 'warehouse', meta: { tipo: 'nivelEdificio', id: 'casa', valor: 5 }, premioReliquias: 0 },
+  { id: 'invernada', nombre: 'Cinco inviernos', descripcion: 'Sobrevive a cinco inviernos.', icono: 'winterGloves', meta: { tipo: 'inviernos', valor: 5 }, premioReliquias: 0 },
+  { id: 'coleccionista', nombre: 'Coleccionista de reliquias', descripcion: 'Reúne tres reliquias.', icono: 'emerald', meta: { tipo: 'reliquias', valor: 3 }, premioReliquias: 1 },
+  { id: 'cronista', nombre: 'Cronista', descripcion: 'Escribe treinta entradas en la crónica.', icono: 'scrollUnfurled', meta: { tipo: 'cronica', valor: 30 }, premioReliquias: 0 },
+];
 
 function redondearADecima(valor) {
   return Math.round((valor + Number.EPSILON * Math.abs(valor)) * 10) / 10;
@@ -168,6 +213,9 @@ function redondearADecima(valor) {
 function costoSiguienteNivel(tipoId, nivelActual) {
   const info = TIPOS_EDIFICIO[tipoId];
   if (!info) throw new Error(`Tipo de edificio desconocido: ${tipoId}`);
+  if (info.maxNivel != null && nivelActual >= info.maxNivel) {
+    throw new Error(`${info.nombre} ya alcanzó el nivel máximo (${info.maxNivel}).`);
+  }
   const factor = Math.pow(1.15, nivelActual);
   const costo = {};
   for (const [recurso, valor] of Object.entries(info.costoBase)) {
@@ -201,12 +249,14 @@ function calcularCapacidades(aldea) {
 }
 
 function crearAldeaPorDefecto(usuarioId) {
-  return {
+  const aldea = {
     usuario: usuarioId,
     recursos: { madera: MADERA_INICIAL, comida: 0, oro: 0, trigo: 0, harina: 0, pan: 0, hierro: 0 },
     tasasGeneracion: { madera: 0, comida: 0.5, oro: 0, trigo: 0, harina: 0, pan: 0, hierro: 0 },
     multiplicadores: { generacion: 1, velocidad: 1, costoConstruccion: 1 },
     poblacionMaxima: 1,
+    poblacionRanking: 1,
+    anclaAntiTrampas: { cicloDia: 1, inicio: new Date() },
     umbralPoblacion: UMBRAL_POBLACION_BASE,
     aldeanos: [
       {
@@ -225,13 +275,18 @@ function crearAldeaPorDefecto(usuarioId) {
     investigaciones: { herramientas: false, rutas: false, planificacion: false, metalurgia: false },
     arbolInvestigacionDesbloqueado: false,
     tecnologias: { herramientas: 0, logistica: 0, defensa: 0, metalurgia: 0, planosAntiguos: 0 },
-    legado: { coloniasFundadas: 0, reliquias: 0, reliquiasGastadas: 0 },
+    legado: { coloniasFundadas: 0, reliquias: 0, reliquiasGastadas: 0, generaciones: 0 },
     ciclo: { segundos: 0, dia: 1 },
     eventoNocturno: { tipo: null, dia: 0 },
+    eventoPrevisto: { tipo: null, dia: 0, segundosRestantes: 0 },
+    investigacionEnCurso: { id: null, nivelObjetivo: null, progresoSegundos: 0 },
     edad: { id: 'calma', numero: 1, inicioAnio: 1, duracionAnios: 10 },
     cronica: [],
+    estadisticas: crearEstadisticasIniciales(),
+    logros: [],
     ultimoGuardado: new Date(),
   };
+  return asegurarAldeaVida(aldea);
 }
 
 module.exports = {
@@ -239,11 +294,12 @@ module.exports = {
   TECNOLOGIAS,
   ARBOL_INVESTIGACION,
   RELIQUIAS,
-  ARBOL_INVESTIGACION,
-  RELIQUIAS,
+  CICLO_VIDA,
   EVENTOS_NOCTURNOS,
+  LOGROS,
   SEGUNDOS_DIA,
   SEGUNDOS_NOCHE,
+  DURACION_INVESTIGACION_SEGUNDOS,
   ESTACIONES,
   EDADES,
   UMBRAL_POBLACION_BASE,

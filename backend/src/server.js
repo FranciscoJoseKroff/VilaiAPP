@@ -8,6 +8,8 @@ const conectarDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const villageRoutes = require('./routes/villageRoutes');
 const catalogRoutes = require('./routes/catalogRoutes');
+const rankingRoutes = require('./routes/rankingRoutes');
+const { version: versionApi } = require('../package.json');
 
 function validarEntorno() {
   const faltantes = ['MONGODB_URI', 'JWT_SECRET'].filter((nombre) => !process.env[nombre]);
@@ -63,11 +65,13 @@ app.use('/api/salud', limitePublico, (req, res) => {
   res.status(conectado ? 200 : 503).json({
     estado: conectado ? 'ok' : 'no_conectado',
     mongo: conectado ? 'conectado' : 'desconectado',
+    version: versionApi,
   });
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/aldea', villageRoutes);
 app.use('/api/catalogo', limitePublico, catalogRoutes);
+app.use('/api/ranking', rankingRoutes);
 
 app.use((error, req, res, next) => {
   if (error.message === 'Origen CORS no permitido') {

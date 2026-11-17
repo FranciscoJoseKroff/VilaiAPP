@@ -16,13 +16,27 @@ export default function ConstruirTab() {
 
   const getDatos = ([id, info]) => {
     const existente = game.aldea.edificios.find((e) => e.tipoId === id);
-    const bloqueado = Boolean(info.requiereTecnologia && !(game.aldea.tecnologias?.[info.requiereTecnologia] || 0));
+    const nombresTecnologias = { planosAntiguos: 'Planos antiguos', metalurgia: 'Metalurgia' };
+    const bloqueoTecnologia = info.requiereTecnologia
+      && !(game.aldea.tecnologias?.[info.requiereTecnologia] || 0)
+      ? `Requiere ${nombresTecnologias[info.requiereTecnologia] || info.requiereTecnologia}.`
+      : '';
+    const bloqueoEdificio = (info.requiereEdificio || []).find((requisito) => {
+      const requerido = game.aldea.edificios.find((edificio) => edificio.tipoId === requisito.tipoId);
+      return !requerido || Number(requerido.nivel || 1) < requisito.nivel;
+    });
+    const nombresEdificios = { centroInvestigacion: 'Centro de Investigación' };
+    const bloqueo = bloqueoTecnologia || (bloqueoEdificio
+      ? `Requiere ${nombresEdificios[bloqueoEdificio.tipoId] || bloqueoEdificio.tipoId} nivel ${bloqueoEdificio.nivel}.`
+      : '');
+    const bloqueado = Boolean(bloqueo);
+    const maximo = Boolean(existente && info.maxNivel != null && existente.nivel >= info.maxNivel);
     const precio = game.costosMejora[id];
-    const loading = Boolean(existente && !precio?.error && (!precio || precio.nivel !== existente.nivel));
+    const loading = Boolean(existente && !maximo && !precio?.error && (!precio || precio.nivel !== existente.nivel));
     const costo = existente ? (precio?.nivel === existente.nivel ? precio.costo : null) : info.costoBase;
     const puede = Boolean(costo && puedePagar(recursos, costo));
     const faltante = costo ? Object.entries(costo).reduce((total, [recurso, cantidad]) => total + Math.max(0, cantidad - (recursos[recurso] || 0)), 0) : 999;
-    return { id, info, existente, bloqueado, loading, costo, puede, faltante };
+    return { id, info, existente, bloqueado, bloqueo, maximo, loading, costo, puede, faltante };
   };
 
   const construibles = entradas.map(getDatos);
@@ -42,6 +56,8 @@ export default function ConstruirTab() {
       available={recursos}
       costLoading={item.loading}
       blocked={item.bloqueado}
+      blockedReason={item.bloqueo}
+      maxLevelReached={item.maximo}
       canPay={item.puede}
       effect={describirEdificio(item.info)}
       onAction={() => game.tocarEdificio(item.id)}

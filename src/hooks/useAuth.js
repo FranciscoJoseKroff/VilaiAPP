@@ -7,6 +7,7 @@ export function useAuth() {
   const [error, setError] = useState('');
   const [modoRegistro, setModoRegistro] = useState(false);
   const [nombre, setNombre] = useState('');
+  const [apodo, setApodo] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -32,13 +33,17 @@ export function useAuth() {
     setError('');
     try {
       const ruta = modoRegistro ? '/auth/registro' : '/auth/login';
-      const cuerpo = modoRegistro ? { email, password, nombre } : { email, password };
+      const cuerpo = modoRegistro
+        ? { email, password, nombre, ...(apodo.trim() ? { apodo: apodo.trim() } : {}) }
+        : { email, password };
       const respuesta = await apiFetch(ruta, { method: 'POST', body: cuerpo });
       await guardarToken(respuesta.token);
       setToken(respuesta.token);
     } catch (e) {
       const mensaje = String(e.message || '').toLowerCase();
-      if (mensaje.includes('credencial') || mensaje.includes('password') || mensaje.includes('contraseña')) setError('El correo o la contraseña no son correctos.');
+      if (e.status === 409 && mensaje.includes('apodo')) setError('Ese apodo ya está en uso.');
+      else if (mensaje.includes('apodo')) setError(e.message.replace(/ \(\d+\)$/, ''));
+      else if (mensaje.includes('credencial') || mensaje.includes('password') || mensaje.includes('contraseña')) setError('El correo o la contraseña no son correctos.');
       else if (mensaje.includes('email') || mensaje.includes('correo') || mensaje.includes('usuario')) setError('Ese correo ya está registrado o no es válido.');
       else if (mensaje.includes('network') || mensaje.includes('fetch')) setError('No pudimos conectar con Vilai. Revisa tu conexión e inténtalo de nuevo.');
       else setError('No se pudo completar la solicitud. Inténtalo de nuevo.');
@@ -47,5 +52,5 @@ export function useAuth() {
     }
   }
 
-  return { token, setToken, verificandoSesion, setVerificandoSesion, error, setError, modoRegistro, setModoRegistro, nombre, setNombre, email, setEmail, password, setPassword, enviando, enviarFormulario, cerrarSesion };
+  return { token, setToken, verificandoSesion, setVerificandoSesion, error, setError, modoRegistro, setModoRegistro, nombre, setNombre, apodo, setApodo, email, setEmail, password, setPassword, enviando, enviarFormulario, cerrarSesion };
 }

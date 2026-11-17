@@ -6,6 +6,7 @@ import { AppIcon } from './icons';
 import PixelBar from './pixel/PixelBar';
 import PixelButton from './pixel/PixelButton';
 import { AvatarAldeano } from './AvatarAldeano';
+import { EtapaVidaIcon } from './EtapaVidaIcon';
 
 const NOMBRES_PROFESION = { lenador: 'Leñador', granjero: 'Granjero', agricultor: 'Agricultor', minero: 'Minero', guardia: 'Guardia', sin_oficio: 'Sin oficio' };
 
@@ -36,7 +37,7 @@ export const VillagerBottomSheet = forwardRef(function VillagerBottomSheet({ ald
           <AvatarAldeano aldeano={aldeano} size={64} />
           <Text style={styles.name}>{aldeano.nombre || 'Aldeano'}</Text>
         </View>
-        <Text style={styles.meta}>{Number(aldeano.edad || 18)} años · {NOMBRES_PROFESION[profesion] || profesion}</Text>
+        <Text style={styles.meta}>{Number(aldeano.edadAnios ?? aldeano.edad ?? 18)} años · <EtapaVidaIcon aldeano={aldeano} mostrarNombre /> · {NOMBRES_PROFESION[profesion] || profesion}</Text>
         <View style={styles.traits}>{rasgos.map((rasgo) => <View key={rasgo} style={styles.trait}><Text style={styles.traitText}>{rasgo}</Text></View>)}</View>
         <Text style={styles.activityTitle}>Ahora mismo</Text>
         <View style={styles.activity}><AppIcon name="account-hard-hat-outline" size={22} color={theme.colors.acento} /><Text style={styles.activityText}>{aldeano.pensamientoActual || aldeano.actividadActual || 'Descansando en la aldea'}</Text></View>

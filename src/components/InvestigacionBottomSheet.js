@@ -45,6 +45,9 @@ export default function InvestigacionBottomSheet({
 
   const nivel = nivelDe(aldea, nodo.id);
   const maximo = nodo.maxNivel != null && nivel >= nodo.maxNivel;
+  const investigacionActiva = aldea.investigacionEnCurso?.id === nodo.id;
+  const progresoInvestigacion = Number(aldea.investigacionEnCurso?.progresoSegundos || 0);
+  const duracionInvestigacion = Number(aldea.duracionInvestigacionSegundos || 60) * Number(aldea.investigacionEnCurso?.nivelObjetivo || 1);
   const costo = costoDe(nodo, nivel);
   const requisitos = requisitosDelNodo(nodo, aldea);
   const reliquiasTotales = Number(aldea.legado?.reliquias) || 0;
@@ -74,6 +77,11 @@ export default function InvestigacionBottomSheet({
           </View>
           <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
             <Text style={styles.description}>{nodo.descripcion}</Text>
+            {investigacionActiva ? (
+              <Text style={styles.detail}>
+                En curso · {Math.min(100, Math.floor(progresoInvestigacion / duracionInvestigacion * 100))} %
+              </Text>
+            ) : null}
 
             <Text style={styles.sectionTitle}>Efecto actual</Text>
             <Text style={styles.detail}>{efectoActual}</Text>
@@ -109,11 +117,11 @@ export default function InvestigacionBottomSheet({
 
             <PixelButton
               accessibilityLabel={`Investigar ${nodo.nombre}, nivel ${nivel + 1}`}
-              disabled={!disponibilidad.ok}
+              disabled={!disponibilidad.ok || investigacionActiva}
               style={styles.action}
               onPress={() => onInvestigar(nodo.id)}
             >
-              {maximo ? 'Investigación completada' : `Investigar nivel ${nivel + 1}`}
+              {maximo ? 'Investigación completada' : investigacionActiva ? 'Investigación en curso' : `Iniciar nivel ${nivel + 1}`}
             </PixelButton>
             {!disponibilidad.ok ? <Text accessibilityRole="alert" style={styles.reason}>{motivo || 'No puedes investigar este nodo todavía.'}</Text> : null}
           </ScrollView>

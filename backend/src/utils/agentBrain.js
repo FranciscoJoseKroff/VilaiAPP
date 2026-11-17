@@ -9,6 +9,7 @@ const {
   TOPE_OBJETIVO,
 } = require('./villageDefaults');
 const { decidir } = require('./cerebro');
+const { etapaVida } = require('./cicloVida');
 
 const CATALOGO_IA = {
   capacidadesBase: CAPACIDADES_BASE,
@@ -58,6 +59,13 @@ function actualizarAgentes(aldea) {
   if ((aldea.ciclo?.segundos || 0) % 10 !== 0) return;
   for (let indice = 0; indice < (aldea.aldeanos || []).length; indice += 1) {
     const aldeano = aldea.aldeanos[indice];
+    if (etapaVida(aldeano) === 'nino') {
+      aldeano.trabajo = 'libre';
+      aldeano.estado = 'descansando';
+      aldeano.decision = null;
+      aldeano.pensamientoActual = 'Aún es niño y no tiene oficio.';
+      continue;
+    }
     if (aldeano.modoTrabajo !== 'automatico') continue;
     const resultado = decidir(aldea, aldeano, indice, CATALOGO_IA);
     aldeano.trabajo = resultado.eleccion.trabajo;

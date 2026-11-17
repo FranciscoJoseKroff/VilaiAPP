@@ -5,9 +5,10 @@ import { AppIcon } from './icons';
 import { CostChips } from './CostChips';
 import PixelPanel from './pixel/PixelPanel';
 import PixelButton from './pixel/PixelButton';
+import GameIcon from './GameIcon';
 
-const ICONOS = { bestias: 'paw', helada: 'snowflake', recaudador: 'cash' };
-const TITULOS = { bestias: 'Bestias acechantes', helada: 'Helada nocturna', recaudador: 'Recaudador del camino' };
+const ICONOS = { bestias: 'paw', helada: 'snowflake', recaudador: 'cash', incendio: 'fire' };
+const TITULOS = { bestias: 'Bestias acechantes', helada: 'Helada nocturna', recaudador: 'Recaudador del camino', incendio: 'Incendio' };
 
 export function EventoModal({ evento, tipo, recursos, puedeDefender, onDefender, onAceptar, visible }) {
   const costo = evento?.costoDefensa || {};
@@ -20,7 +21,9 @@ export function EventoModal({ evento, tipo, recursos, puedeDefender, onDefender,
   }, [entrada, visible]);
 
   if (!evento) return null;
-  const consecuenciaAceptar = tipo === 'helada'
+  const consecuenciaAceptar = tipo === 'incendio'
+    ? 'Daño en aserraderos, casas y graneros.'
+    : tipo === 'helada'
     ? 'Daño en granjas y hornos.'
     : tipo === 'bestias'
       ? 'Daño en edificios y posible pérdida de integridad.'
@@ -32,7 +35,9 @@ export function EventoModal({ evento, tipo, recursos, puedeDefender, onDefender,
         <Animated.View style={{ width: '100%', maxWidth: 440, transform: [{ translateY: entrada.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }, { scale: entrada }] }}>
           <PixelPanel variant="elevada" style={styles.modal}>
             <View style={styles.icono}>
-              <AppIcon name={ICONOS[tipo] || 'weather-lightning'} size={52} color={theme.colors.aviso} />
+              {tipo === 'incendio'
+                ? <GameIcon id="burningEmbers" size={52} color={theme.colors.aviso} />
+                : <AppIcon name={ICONOS[tipo] || 'weather-lightning'} size={52} color={theme.colors.aviso} />}
             </View>
             <Text accessibilityRole="header" style={styles.titulo}>{evento.nombre || TITULOS[tipo] || tipo}</Text>
             <Text style={styles.descripcion}>{tipo === 'recaudador' ? 'El recaudador exige tributo antes de continuar por el camino.' : evento.descripcion || 'Una amenaza obliga a la aldea a tomar una decisión.'}</Text>

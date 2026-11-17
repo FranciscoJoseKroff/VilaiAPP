@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { theme } from '../../theme';
 import { useGame } from '../context/GameContext';
+import { useCalidadGrafica } from '../context/CalidadGraficaContext';
+import { perfilCalidadGrafica } from '../game/calidadGrafica';
+import { useReducedMotion } from './useReducedMotion';
 import { estacionEn } from '../game/tiempo';
 
 const NORMALIZAR_ESTACION = { otoño: 'otono' };
@@ -9,6 +12,9 @@ const NORMALIZAR_EDAD = { Calma: 'calma', Abundancia: 'abundancia', Hielo: 'hiel
 
 export function useTemaTiempo() {
   const game = useGame();
+  const { calidad } = useCalidadGrafica();
+  const movimientoReducido = useReducedMotion();
+  const transicionesEstacion = perfilCalidadGrafica(calidad, movimientoReducido).transicionesEstacion;
   const aldea = game.aldea || {};
   const segundos = Number(aldea.ciclo?.segundos || 0);
   const estacionId = NORMALIZAR_ESTACION[estacionEn(segundos).id] || estacionEn(segundos).id || 'primavera';
@@ -19,9 +25,13 @@ export function useTemaTiempo() {
   const suelo = useSharedValue(estacion.cielo[1]);
 
   useEffect(() => {
-    cielo.value = withTiming(estacion.cielo[0], { duration: 900 });
-    suelo.value = withTiming(estacion.cielo[1], { duration: 900 });
-  }, [estacionId, estacion.cielo, cielo, suelo]);
+    cielo.value = transicionesEstacion
+      ? withTiming(estacion.cielo[0], { duration: 900 })
+      : estacion.cielo[0];
+    suelo.value = transicionesEstacion
+      ? withTiming(estacion.cielo[1], { duration: 900 })
+      : estacion.cielo[1];
+  }, [estacionId, estacion.cielo, cielo, suelo, transicionesEstacion]);
 
   const hudStyle = useAnimatedStyle(() => ({
     backgroundColor: cielo.value,

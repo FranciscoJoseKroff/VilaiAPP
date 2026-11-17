@@ -3,6 +3,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { theme } from '../../../theme';
 import { AppIcon } from '../icons';
+import { describirEdificio } from '../../game/format';
 
 export function EdificioBottomSheet({ visible, edificio, catalogo, onClose }) {
   const router = useRouter();
@@ -16,7 +17,18 @@ export function EdificioBottomSheet({ visible, edificio, catalogo, onClose }) {
     efectos[informacion.efectoTasa.recurso] = informacion.efectoTasa.base * nivel;
   }
   if (informacion.efectoPoblacion) efectos.poblacion = informacion.efectoPoblacion * nivel;
-  const efecto = Object.entries(efectos).map(([nombre, cantidad]) => `${nombre}: +${cantidad}`).join(' · ');
+  const efectosBase = Object.entries(efectos).map(([nombre, cantidad]) => `${nombre}: +${cantidad}`);
+  if (informacion.efectoProduccionGeneral) {
+    efectosBase.push(`producción general: +${(informacion.efectoProduccionGeneral * nivel * 100).toFixed(0)} %`);
+  }
+  if (informacion.efectoVelocidadInvestigacion) {
+    efectosBase.push(`velocidad de investigación: +${(informacion.efectoVelocidadInvestigacion * nivel * 100).toFixed(0)} %`);
+  }
+  if (informacion.avisoEventoSegundos) {
+    efectosBase.push(`aviso: +${informacion.avisoEventoSegundos * nivel} s`);
+    efectosBase.push(`eficacia de guardia: +${(informacion.multiplicadorGuardia * nivel * 100).toFixed(0)} %`);
+  }
+  const efecto = efectosBase.join(' · ') || describirEdificio(informacion);
 
   const abrirConstruccion = () => {
     onClose();

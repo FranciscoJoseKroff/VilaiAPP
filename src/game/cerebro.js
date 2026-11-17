@@ -19,6 +19,7 @@ const RASGOS_BASE = {
   maderero: { trabajo: 'lenador' },
   hortelano: { trabajo: 'agricultor' },
   minero: { trabajo: 'minero' },
+  guardian: { trabajo: 'guardia' },
 };
 
 export function objetivosDeRecursos(capacidades, fracciones = OBJETIVOS_IA_BASE, tope = TOPE_OBJETIVO_BASE) {
