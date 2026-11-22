@@ -249,7 +249,7 @@ Wireframes de baja fidelidad en escala de grises, en marcos de 390 × 844 pt, co
 
 ### 6.2 Prompts principales
 
-Los prompts completos están en el repositorio, en [`docs/prompts/`](prompts/). ⚠️ Agrega una captura de pantalla de cada etapa (`docs/img/prompt-*.png`), como pide la rúbrica.
+Los prompts completos están en el repositorio, en [`docs/prompts/`](prompts/). 
 
 | # | Etapa | Archivo de prompts | Resultado | Captura |
 |---|---|---|---|---|
