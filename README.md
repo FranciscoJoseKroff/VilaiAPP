@@ -8,16 +8,9 @@ Juego incremental de construcción de aldea para móviles. La aldea crece de for
 ## Documentación del proyecto
 
 - **Bitácora de diseño y frontend móvil:** [`docs/bitacora.md`](docs/bitacora.md)
-- **Diseño en Figma / Penpot:** ⚠️ PEGAR AQUÍ EL ENLACE
+- **Diseño en Figma / Penpot:** 
 - **Prompts usados con IA generativa:** [`docs/prompts/`](docs/prompts/)
 
-## Capturas
-
-⚠️ Reemplaza estas imágenes por capturas tomadas en el teléfono.
-
-| Aldea | Aldeanos | Construir | Investigación |
-|---|---|---|---|
-| ![Aldea](docs/img/app-aldea.png) | ![Aldeanos](docs/img/app-aldeanos.png) | ![Construir](docs/img/app-construir.png) | ![Investigación](docs/img/app-investigacion.png) |
 
 ## Funciones principales
 
@@ -129,7 +122,7 @@ cd backend && npm test    # servidor: lógica y seguridad
 - Iconos de [game-icons.net](https://game-icons.net), licencia CC BY 3.0 (autores en la pantalla **Créditos** de la app).
 - Avatares con [DiceBear](https://www.dicebear.com), estilo Pixel Art (CC0).
 - Fuentes Press Start 2P e Inter, de Google Fonts.
-- ⚠️ Sonidos de [Kenney](https://kenney.nl) (CC0), si los incluiste.
+- Sonidos de [Kenney](https://kenney.nl) (CC0).
 
 ## Licencia
 
