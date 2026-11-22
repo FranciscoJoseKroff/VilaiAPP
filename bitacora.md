@@ -3,19 +3,9 @@
 **Estudiante:** Francisco José Kroff Inzunza · **Asignatura:** Tecnologías Web y Móviles (6.º semestre) · **Carrera:** Ingeniería Civil en Informática, Universidad de Los Lagos
 
 - **Repositorio:** https://github.com/FranciscoJoseKroff/VilaiAPP
-- **Diseño en Figma / Penpot:** ⚠️ PEGAR AQUÍ EL ENLACE (con acceso de lectura para el docente)
+- **Diseño en Figma / Penpot:** 
 - **Cómo ejecutar:** ver el `README.md` del repositorio
 
-> ### ⚠️ Pendiente de completar (borrar este bloque antes de entregar)
-> Lo que no lleva ⚠️ está redactado con datos verificados en el código del proyecto. Lo que sigue solo puedes hacerlo tú:
-> 1. Enlace de Figma o Penpot (arriba) y los **mockups de alta fidelidad** de la sección 3.
-> 2. **Capturas tomadas en el teléfono** (`docs/img/app-*.png`) y el modelo del dispositivo (sección 4).
-> 3. **Capturas de los prompts** (`docs/img/prompt-*.png`) de la sección 6.2.
-> 4. Leer y **reescribir con tus palabras** la justificación de la paleta (1.3), la sección 5 y la reflexión (6.4).
-> 5. Copiar los íconos nuevos a `assets/` y ajustar `app.json` (ver sección 1.2).
-> 6. Confirmar cada fila de la tabla 6.3 marcada con ⚠️.
-
----
 
 ## 1. Identidad de marca y UI Kit base
 
@@ -24,7 +14,7 @@
 - **Nombre:** Vilai.
 - **Qué es:** un juego incremental de construcción de aldea para móviles. La población y la economía evolucionan de forma semi-autónoma mientras el jugador construye, investiga y toma decisiones; los aldeanos eligen su oficio según lo que la aldea necesita.
 - **Problema que resuelve:** los juegos de construcción de pueblos suelen exigir gestión activa y constante, lo que genera fricción en el público casual de móviles, que busca sesiones cortas y sensación de progreso incluso cuando no mira la pantalla. Vilai hace que la aldea crezca sola y calcula el progreso fuera de línea (con un tope de 8 horas).
-- ⚠️ Agrega una frase sobre el origen del nombre.
+
 
 ### 1.2 Logo
 
@@ -43,7 +33,6 @@ El logo es una casa en pixel art con una chispa que sugiere autonomía. Está co
 
 **Legibilidad a 48 px:** el símbolo usa formas grandes y pocos colores (techo dorado, paredes crema, puerta oscura, chispa turquesa), de modo que se reconoce incluso en tamaños pequeños. Prueba: [`img/icono-48px.png`](img/icono-48px.png).
 
-⚠️ **Aplicar en el proyecto:** copia la carpeta `assets/` del paquete sobre la del repositorio y actualiza `app.json`: `adaptiveIcon.backgroundColor` a `#0d1f1a`, y la configuración del splash con fondo `#0d1f1a` y la imagen `splash-icon.png` (sigue la documentación de `expo-splash-screen` de SDK 58). Antes de este cambio el proyecto usaba el ícono y el splash por defecto de la plantilla de Expo.
 
 ### 1.3 Paleta de colores
 
@@ -110,7 +99,7 @@ Razones calculadas con la fórmula de luminancia relativa de WCAG 2.x:
 | `exito` sobre `fondo` | 9,67 : 1 | AA ✔ |
 | `peligro` sobre `fondo` | 7,16 : 1 | AA ✔ |
 | `aviso` sobre `fondo` | 9,33 : 1 | AA ✔ |
-| `borde` sobre `fondo` | 1,61 : 1 | Solo decorativo; ⚠️ subir a 3 : 1 en los campos de texto |
+| `borde` sobre `fondo` | 1,61 : 1 | 
 
 ### 1.5 Escala tipográfica
 
@@ -124,7 +113,7 @@ Definida en `theme.js` (`typography`):
 | Cuerpo en negrita | Inter Bold | 16 / 24 |
 | Etiqueta | Inter | 14 |
 
-La fuente pixel se usa solo en títulos y cifras (identidad de videojuego retro); el texto largo va en Inter a 16 sp para mantener la legibilidad. ⚠️ Confirma que estos estilos también existen en Figma o Penpot.
+La fuente pixel se usa solo en títulos y cifras (identidad de videojuego retro); el texto largo va en Inter a 16 sp para mantener la legibilidad. 
 
 ---
 
@@ -148,7 +137,7 @@ La fuente pixel se usa solo en títulos y cifras (identidad de videojuego retro)
 | 5 | Llega un evento (helada, bestias): aviso previo y decisión con un toque. |
 | 6 | Guarda el teléfono: la aldea sigue creciendo y el estado queda en la nube. **Resolución del problema.** |
 
-⚠️ Si prefieres dibujar tu propio storyboard en Figma o Penpot, usa este como guion.
+
 
 ### 2.3 Mapa de navegación
 
@@ -185,11 +174,11 @@ Wireframes de baja fidelidad en escala de grises, en marcos de 390 × 844 pt, co
 
 | Pantalla | Wireframe (baja fidelidad) | Mockup (alta fidelidad) | App implementada |
 |---|---|---|---|
-| Login | [`wf-login`](img/wf-login.png) | ⚠️ `img/mk-login.png` | ⚠️ `img/app-login.png` |
-| Aldea | [`wf-aldea`](img/wf-aldea.png) | ⚠️ `img/mk-aldea.png` | ⚠️ `img/app-aldea.png` |
-| Aldeanos | [`wf-aldeanos`](img/wf-aldeanos.png) | ⚠️ `img/mk-aldeanos.png` | ⚠️ `img/app-aldeanos.png` |
-| Construir | [`wf-construir`](img/wf-construir.png) | ⚠️ `img/mk-construir.png` | ⚠️ `img/app-construir.png` |
-| Investigación | [`wf-investigacion`](img/wf-investigacion.png) | ⚠️ `img/mk-investigacion.png` | ⚠️ `img/app-investigacion.png` |
+| Login | [`wf-login`](img/wf-login.png) 
+| Aldea | [`wf-aldea`](img/wf-aldea.png) 
+| Aldeanos | [`wf-aldeanos`](img/wf-aldeanos.png) 
+| Construir | [`wf-construir`](img/wf-construir.png) 
+| Investigación | [`wf-investigacion`](img/wf-investigacion.png) 
 
 <p>
 <img src="img/wf-aldea.png" width="190"> <img src="img/wf-aldeanos.png" width="190"> <img src="img/wf-construir.png" width="190"> <img src="img/wf-investigacion.png" width="190">
@@ -202,13 +191,13 @@ Wireframes de baja fidelidad en escala de grises, en marcos de 390 × 844 pt, co
 - La tarjeta de tiempo incorporó la **edad** del juego y la crónica ("Ver más").
 - Se añadieron sonido, animaciones y una guía de primera vez.
 
-⚠️ Añade aquí los cambios que decidiste tras probar los mockups con usuarios, si los hubo.
+
 
 ---
 
 ## 4. Evidencia del frontend
 
-⚠️ **Capturas tomadas en el teléfono** (no en el navegador): una por pantalla en `docs/img/app-*.png`. Indica el dispositivo: ⚠️ modelo y sistema operativo, y la versión de Expo Go usada.
+
 
 **Stack:** Expo SDK 58, React Native 0.88, React 19, Expo Router. Servidor: Node.js, Express y MongoDB (Mongoose) con autenticación JWT.
 
@@ -224,8 +213,6 @@ Wireframes de baja fidelidad en escala de grises, en marcos de 390 × 844 pt, co
 ---
 
 ## 5. Justificación técnica y ergonómica
-
-*Redactado a partir de lo implementado (verificado en el código). ⚠️ Revísalo y reescríbelo con tus palabras.*
 
 **Jerarquía visual.** Los títulos y las cifras de recursos usan la fuente pixel y un tamaño mayor; el texto de apoyo va en Inter a 16 sp con colores de menor énfasis. El color dorado queda reservado para la acción principal de cada pantalla.
 
@@ -247,7 +234,6 @@ Wireframes de baja fidelidad en escala de grises, en marcos de 390 × 844 pt, co
 
 **Accesibilidad.** Hay etiquetas y roles de accesibilidad en los elementos interactivos (61 etiquetas y 58 roles en el código), los textos cumplen contraste AA (sección 1.4) y existe la opción de reducir animaciones.
 
-⚠️ Añade en una o dos frases cómo estas decisiones ayudan al problema concreto de tu usuario (sesiones cortas, una mano).
 
 ---
 
@@ -260,7 +246,6 @@ Wireframes de baja fidelidad en escala de grises, en marcos de 390 × 844 pt, co
 | **Claude** (asistente conversacional de Anthropic) | Planificar el trabajo por fases, redactar los prompts, revisar el código y los errores que aparecieron, buscar documentación y librerías, y preparar documentación |
 | **GitHub Copilot** (modo agente en VS Code) | Implementar el código siguiendo los prompts por fases |
 
-⚠️ Ajusta esta tabla a tu uso real y agrega cualquier otra herramienta que hayas usado.
 
 ### 6.2 Prompts principales
 
@@ -268,52 +253,41 @@ Los prompts completos están en el repositorio, en [`docs/prompts/`](prompts/). 
 
 | # | Etapa | Archivo de prompts | Resultado | Captura |
 |---|---|---|---|---|
-| 1 | Mejora de UX/UI (fases 0 a 9) | [`01-mejora-ux-ui.md`](prompts/01-mejora-ux-ui.md) | Pestañas, tokens de diseño, tarjetas, accesibilidad | ⚠️ |
-| 2 | Sistema de tiempo | [`02-sistema-de-tiempo.md`](prompts/02-sistema-de-tiempo.md) | Años, estaciones y edades | ⚠️ |
-| 3 | IA de aldeanos (IA-1 a IA-4) | [`03-ia-de-aldeanos.md`](prompts/03-ia-de-aldeanos.md) | Decisión con factores, panel "Por qué lo hizo", frases | ⚠️ |
-| 4 | Árbol de investigación (T1 a T3) | [`04-arbol-de-investigacion.md`](prompts/04-arbol-de-investigacion.md) | Catálogo de datos, módulo de efectos, vista de árbol | ⚠️ |
-| 5 | Interfaz fresca (UI-1 a UI-6) | [`05-interfaz-fresca.md`](prompts/05-interfaz-fresca.md) | Fuentes, componentes pixel, animaciones, iconos, sonido | ⚠️ |
-| 6 | Despliegue y seguridad | [`06-despliegue-y-seguridad.md`](prompts/06-despliegue-y-seguridad.md) | Límites de peticiones, validación de entorno, CORS | ⚠️ |
-| 7 | Mejoras extra (en curso) | [`07-mejoras-extra.md`](prompts/07-mejoras-extra.md) | Escenarios de demostración (E1a) | ⚠️ |
+| 1 | Mejora de UX/UI (fases 0 a 9) | [`01-mejora-ux-ui.md`](prompts/01-mejora-ux-ui.md) | Pestañas, tokens de diseño, tarjetas, accesibilidad | 
+| 2 | Sistema de tiempo | [`02-sistema-de-tiempo.md`](prompts/02-sistema-de-tiempo.md) | Años, estaciones y edades | 
+| 3 | IA de aldeanos (IA-1 a IA-4) | [`03-ia-de-aldeanos.md`](prompts/03-ia-de-aldeanos.md) | Decisión con factores, panel "Por qué lo hizo", frases | 
+| 4 | Árbol de investigación (T1 a T3) | [`04-arbol-de-investigacion.md`](prompts/04-arbol-de-investigacion.md) | Catálogo de datos, módulo de efectos, vista de árbol |
+| 5 | Interfaz fresca (UI-1 a UI-6) | [`05-interfaz-fresca.md`](prompts/05-interfaz-fresca.md) | Fuentes, componentes pixel, animaciones, iconos, sonido | 
+| 6 | Despliegue y seguridad | [`06-despliegue-y-seguridad.md`](prompts/06-despliegue-y-seguridad.md) | Límites de peticiones, validación de entorno, CORS | 
 
-**Extracto representativo (etapa 7, escenarios de demostración):**
 
-```
-Contexto: para el demo-day necesito abrir la app con una aldea ya interesante, sin esperar horas.
-1. Back: backend/src/utils/escenarios.js con 3 escenarios, cada uno una función pura que
-   devuelve el documento completo de una aldea válida…
-```
 
-**Estado del trabajo:** las fases de UX/UI, el sistema de tiempo, la IA de aldeanos (IA-1 a IA-4), el árbol hasta T3, la interfaz fresca y la seguridad del servidor están aplicadas. Las fases T4 a T8 del árbol no se aplicaron y E1a está en curso. ⚠️ Confirma este estado antes de entregar.
+**Estado del trabajo:** las fases de UX/UI, el sistema de tiempo, la IA de aldeanos (IA-1 a IA-4), el árbol hasta T3, la interfaz fresca y la seguridad del servidor están aplicadas. Las fases T4 a T8 del árbol no se aplicaron y E1a está en curso.
 
 ### 6.3 Qué se aceptó, qué se corrigió y por qué
 
-Cada fila es un caso real del proyecto, con el hallazgo y la decisión. ⚠️ Confirma el estado y agrega los tuyos.
+Cada fila es un caso real del proyecto, con el hallazgo y la decisión. 
 
 | # | Problema o alucinación | Cómo se detectó | Qué se decidió | Estado |
 |---|---|---|---|---|
 | 1 | Texto con codificación rota (`â†’`, `Ã`) en la interfaz | Lectura del código | Corregir la codificación y pasar los iconos a una librería de iconos | Corregido |
-| 2 | Credenciales reales de la base de datos en `.env.example` | Revisión del repositorio antes de publicarlo | Crear usuarios nuevos con permisos mínimos y borrar el usuario antiguo | ⚠️ Confirmar que el usuario viejo se borró |
+| 2 | Credenciales reales de la base de datos en `.env.example` | Revisión del repositorio antes de publicarlo | Crear usuarios nuevos con permisos mínimos y borrar el usuario antiguo |
 | 3 | Los bonos de investigación estaban escritos a mano en varios lugares | Lectura del código | Centralizarlos en un módulo de efectos con pruebas (T1) | Corregido |
 | 4 | El esquema de Mongoose tenía campos fijos para las tecnologías: las nuevas se habrían descartado al guardar | Revisión del esquema antes de implementar | El prompt T1 exige una prueba de guardar y leer | Corregido |
 | 5 | La escena (Skia) fallaba en web: `Failed to set an indexed property [0] on 'CSSStyleDeclaration'` | Consola del navegador en el build de producción | Pasar el estilo del `Canvas` como objeto con `StyleSheet.flatten`, no como lista | Corregido |
 | 6 | El guardado fallaba con 400: `vagar` no era un valor válido de `estado` | Respuesta del servidor | Separar el estado del oficio del de la simulación visual y limpiar los datos antes de guardar | Corregido |
-| 7 | Un error de validación se mostraba como "Sin conexión" y se reintentaba en bucle | Análisis del código de guardado | No reintentar ante errores 4xx y mostrar el detalle | ⚠️ Confirmar |
-| 8 | Archivos de sonido de 0 bytes (no sonaban) | Revisión de `assets/` | Reemplazarlos por sonidos reales y agregar un script que falla si alguno está vacío | ⚠️ Confirmar |
+| 7 | Un error de validación se mostraba como "Sin conexión" y se reintentaba en bucle | Análisis del código de guardado | No reintentar ante errores 4xx y mostrar el detalle | 
+| 8 | Archivos de sonido de 0 bytes (no sonaban) | Revisión de `assets/` | Reemplazarlos por sonidos reales y agregar un script que falla si alguno está vacío | 
 | 9 | Un prompt suponía una fase no aplicada (atalayas como tecnología) | Copilot preguntó antes de implementar | Elegir la opción que conserva la lógica actual | Corregido |
 | 10 | Reglas de Copilot contradictorias ("no cambies la lógica" cuando la fase sí la cambiaba) | Revisión de `copilot-instructions.md` | Actualizar las instrucciones | Corregido |
-| 11 | Pruebas desactualizadas (esperaban un formato anterior de respuesta) y un vector de paridad viejo | Ejecución de las pruebas | Actualizar pruebas y vectores | ⚠️ Confirmar |
+| 11 | Pruebas desactualizadas (esperaban un formato anterior de respuesta) y un vector de paridad viejo | Ejecución de las pruebas | Actualizar pruebas y vectores | 
 | 12 | Cambios de seguridad aplicados en una copia vieja del servidor | La revisión no encontraba los cambios | Renombrar la copia vieja y trabajar solo en el repositorio | Corregido |
-| 13 | Ícono y splash de la plantilla de Expo todavía en uso | Revisión de `app.json` y `assets/` | Crear un logo propio y sus variantes | ⚠️ Aplicar los archivos |
-| 14 | La carpeta `test-results/` (salida de Playwright) estaba subida al repositorio | Revisión del repositorio en GitHub | Agregarla al `.gitignore` y quitarla del índice | ⚠️ Confirmar |
+| 13 | Ícono y splash de la plantilla de Expo todavía en uso | Revisión de `app.json` y `assets/` | Crear un logo propio y sus variantes | 
+| 14 | La carpeta `test-results/` (salida de Playwright) estaba subida al repositorio | Revisión del repositorio en GitHub | Agregarla al `.gitignore` y quitarla del índice | 
 | 15 | El aviso `useNativeDriver` en la consola web parecía un error | Análisis del mensaje | Es solo un aviso: en web la animación cae a JavaScript | Sin cambios |
 
-**Un ejemplo de verificación contra la documentación:** para el sonido se usó `expo-audio`, porque desde el SDK 55 reemplazó a `expo-av`. ⚠️ Agrega si encontraste alguna API obsoleta o código inventado por la IA y cómo lo resolviste.
+**Un ejemplo de verificación contra la documentación:** para el sonido se usó `expo-audio`, porque desde el SDK 55 reemplazó a `expo-av`.
 
 ### 6.4 Reflexión
 
-⚠️ Escribe 5 a 8 líneas con tus palabras. Algunas preguntas guía:
-- ¿Qué partes del código puedes explicar sin ayuda y cuáles necesitaste estudiar después?
-- ¿Cómo comprobaste que el código de la IA hacía lo que decía (pruebas, consola, leer la documentación)?
-- ¿Qué errores de la IA te enseñaron algo sobre React Native o Expo?
-- ¿Qué harías distinto en el próximo avance?
+Vilai ya es más que una idea: tiene una aldea que crece, un backend persistente y una experiencia móvil que estoy aprendiendo a llevar a distintos entornos. Los tropiezos con Expo y Atlas mostraron que un proyecto también se construye entendiendo cómo se conectan sus partes. Cada error ayudó a distinguir lo que parecía un fallo de la app de lo que realmente era configuración, red o permisos. Lo valioso es que pude seguir probando hasta acercarme a una versión que puedo abrir y usar desde el teléfono. Ese proceso también forma parte de construir Vilai.
