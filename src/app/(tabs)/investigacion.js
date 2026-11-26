@@ -6,6 +6,7 @@ import { useGame } from '../../context/GameContext';
 import { AppIcon } from '../../components/icons';
 import NodoInvestigacion from '../../components/NodoInvestigacion';
 import InvestigacionBottomSheet from '../../components/InvestigacionBottomSheet';
+import { EncabezadoPestana } from '../../components/EncabezadoPestana';
 import { efectoDescripcion, formatearCosto, textoRequisito } from '../../game/format';
 import { costoDe, efectosActivos, nivelDe, puedeInvestigar } from '../../game/investigacion';
 
@@ -295,9 +296,9 @@ export default function InvestigacionTab() {
 
   return (
     <View style={styles.screen}>
+      <EncabezadoPestana titulo="Investigación" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.content, { width: anchoContenido }]}>
-          <Text accessibilityRole="header" style={styles.title}>Investigación</Text>
           <View style={styles.summary}>
             <View style={styles.summaryItem}>
               <AppIcon name="diamond-stone" size={20} color={theme.colors.acento} />
@@ -321,7 +322,7 @@ export default function InvestigacionTab() {
             <Text style={styles.sectionTitle}>Bonos activos</Text>
             {bonos.length > 0 ? (
               <View style={styles.bonusList}>
-                {bonos.map((bono, index) => <Text key={`${bono}-${index}`} style={styles.bonusText}>• {bono}</Text>)}
+                {bonos.map((bono, index) => <Text key={`${bono}-${index}`} style={styles.bonusText}>{bono}</Text>)}
               </View>
             ) : <Text style={styles.muted}>Aún no hay bonos de investigación activos.</Text>}
           </View>
@@ -383,19 +384,18 @@ export default function InvestigacionTab() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.fondo },
-  scrollContent: { flexGrow: 1, alignItems: 'center', paddingBottom: theme.spacing[32] },
-  content: { maxWidth: 1280, paddingTop: theme.spacing[16] },
-  title: { ...theme.typography.titulo, color: theme.colors.textoPrimario },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingBottom: 88 },
+  content: { maxWidth: 1280, paddingTop: theme.spacing[4] },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[8], paddingVertical: theme.spacing[12], borderBottomWidth: 1, borderBottomColor: theme.colors.borde },
-  summaryItem: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], paddingRight: theme.spacing[16] },
+  summaryItem: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], paddingHorizontal: theme.spacing[8], borderRadius: 4, borderWidth: 2, borderTopColor: theme.colors.borde, borderLeftColor: theme.colors.borde, borderBottomColor: theme.colors.troncoOscuro, borderRightColor: theme.colors.troncoOscuro, backgroundColor: theme.colors.superficie },
   summaryText: { color: theme.colors.textoPrimario, fontSize: 14, fontWeight: theme.typography.weights.semibold },
   bonuses: { paddingVertical: theme.spacing[12], borderBottomWidth: 1, borderBottomColor: theme.colors.borde },
-  sectionTitle: { ...theme.typography.titulo, color: theme.colors.acento, fontSize: 16, lineHeight: 24, marginBottom: theme.spacing[4] },
-  bonusList: { flexDirection: 'row', flexWrap: 'wrap', columnGap: theme.spacing[16], rowGap: theme.spacing[4] },
-  bonusText: { color: theme.colors.textoSecundario, fontSize: 14, lineHeight: 20 },
+  sectionTitle: { fontFamily: theme.typography.titulo.fontFamily, fontSize: 12, lineHeight: 18, color: theme.colors.acento, marginBottom: theme.spacing[8] },
+  bonusList: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[8] },
+  bonusText: { color: theme.colors.exito, fontSize: 14, lineHeight: 20, paddingHorizontal: theme.spacing[8], paddingVertical: 4, borderRadius: 4, borderWidth: 2, borderColor: theme.colors.borde, backgroundColor: theme.colors.fondo, overflow: 'hidden' },
   muted: { color: theme.colors.textoSecundario, fontSize: 14, marginTop: theme.spacing[4] },
   branchSelector: { flexDirection: 'row', gap: theme.spacing[8], paddingVertical: theme.spacing[12] },
-  branchChip: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], borderRadius: theme.radius[10], borderWidth: 1, borderColor: theme.colors.borde, backgroundColor: theme.colors.superficie, paddingHorizontal: theme.spacing[12] },
+  branchChip: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], borderRadius: 4, borderWidth: 2, borderColor: theme.colors.borde, backgroundColor: theme.colors.superficie, paddingHorizontal: theme.spacing[12] },
   chipMark: { width: 9, height: 9, borderRadius: 5 },
   branchChipText: { color: theme.colors.textoSecundario, fontSize: 14, fontWeight: theme.typography.weights.semibold },
   suggestionRule: { color: theme.colors.textoSecundario, fontSize: 14, marginBottom: theme.spacing[8] },
