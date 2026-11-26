@@ -154,3 +154,14 @@ console.log(`Primer fallecimiento: mínimo ${Math.min(...primerosFallecimientosM
 console.log(`Semillas con población < 3: ${semillasBajoTres.length ? semillasBajoTres.join(', ') : 'ninguna'}`);
 console.log(`Progreso offline comprobado: ${aldeaOfflineConNacimiento.aldeanos.length - 2} nacimientos preservados, sin contarlos como forasteros`);
 console.log('OK: sin extinciones, muertes/duelo deterministas y progreso offline');
+
+// Aldeas con más habitantes que el máximo (recompensas de metas antiguas) se corrigen al cargar.
+const { asegurarPoblacionMaxima } = require('./src/utils/migracionPoblacion');
+const aldeaDesbordada = { poblacionMaxima: 1, aldeanos: [{}, {}, {}] };
+asegurarPoblacionMaxima(aldeaDesbordada);
+assert.equal(aldeaDesbordada.poblacionMaxima, 3);
+asegurarPoblacionMaxima(aldeaDesbordada);
+assert.equal(aldeaDesbordada.poblacionMaxima, 3, 'la migración es idempotente');
+const aldeaConHolgura = { poblacionMaxima: 5, aldeanos: [{}] };
+assert.equal(asegurarPoblacionMaxima(aldeaConHolgura).poblacionMaxima, 5, 'no baja un máximo mayor');
+console.log('OK: poblacionMaxima nunca queda bajo la población actual');

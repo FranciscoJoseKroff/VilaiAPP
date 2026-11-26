@@ -10,6 +10,7 @@ const { aplicarLogros } = require('../utils/logros');
 const { ESCENARIOS } = require('../utils/escenarios');
 const { evaluarAldea } = require('../utils/antiTrampas');
 const { asegurarAldeaVida } = require('../utils/cicloVida');
+const { asegurarPoblacionMaxima } = require('../utils/migracionPoblacion');
 
 // Los subcampos del ancla tienen select: false; '+anclaAntiTrampas' no los trae y el ancla se
 // reescribía en cada guardado, dejando el límite de años sin efecto. Hay que pedirlos uno por uno.
@@ -28,6 +29,7 @@ async function obtenerAldea(req, res) {
     migrarInvestigacion(aldea);
     asegurarEstadisticas(aldea);
     asegurarLogros(aldea);
+    asegurarPoblacionMaxima(aldea);
     if (aldea.poblacionRanking !== (aldea.aldeanos || []).length) {
       aldea.poblacionRanking = (aldea.aldeanos || []).length;
     }

@@ -56,7 +56,9 @@ export default function TabsLayout() {
       ? [...new Set([...(actual.desbloqueos || []), meta.recompensa.desbloqueo])]
       : actual.desbloqueos;
     const puntosInvestigacion = Number(actual.puntosInvestigacion || 0) + Number(meta.recompensa.puntosInvestigacion || 0);
-    let actualizada = { ...actual, recursos, aldeanos, desbloqueos, puntosInvestigacion };
+    // Los aldeanos de premio también suben el máximo; si no, la aldea quedaba en "3 de 1 habitantes".
+    const poblacionMaxima = Number(actual.poblacionMaxima || 1) + cantidadAldeanos;
+    let actualizada = { ...actual, recursos, aldeanos, desbloqueos, puntosInvestigacion, poblacionMaxima };
     for (let indice = 0; indice < cantidadAldeanos; indice += 1) {
       actualizada = incrementarContador(actualizada, 'aldeanosLlegados');
     }
