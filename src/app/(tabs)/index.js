@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { theme } from '../../../theme';
 import { useGame } from '../../context/GameContext';
-import { PixelVillage } from '../../components/PixelVillage';
 import { usePreferenciasEscena } from '../../hooks/usePreferenciasEscena';
 import { calcularCapacidadesAldea } from '../../game/simulation';
 import { ResourceChip } from '../../components/ResourceChip';
@@ -20,6 +19,10 @@ import PixelBar from '../../components/pixel/PixelBar';
 import { AvatarAldeano } from '../../components/AvatarAldeano';
 import { useTemaTiempo } from '../../hooks/useTemaTiempo';
 import Animated from 'react-native-reanimated';
+
+// Carga diferida: en web, Skia lee global.CanvasKit al evaluar el módulo, y Expo Router
+// evalúa las rutas antes de que LoadSkiaWeb (en _layout) termine. Importarla aquí la vuelve tarde.
+const PixelVillage = lazy(() => import('../../components/PixelVillage').then((m) => ({ default: m.PixelVillage })));
 
 export default function AldeaTab() {
   const game = useGame();
@@ -198,6 +201,7 @@ export default function AldeaTab() {
         ) : <View style={styles.chronicleEmpty}><AppIcon name="book-open-outline" size={24} color={theme.colors.textoSecundario} accessibilityLabel="Crónica vacía" /><Text style={styles.chronicleEmptyText}>La historia de tu aldea comienza aquí.</Text></View>}
       </View>
 
+      <Suspense fallback={<View style={styles.villagePlaceholder} accessibilityLabel="Cargando la aldea" />}>
       <PixelVillage
         aldea={aldea}
         estacion={estacion.id}
@@ -207,6 +211,7 @@ export default function AldeaTab() {
         aldeanoSeleccionadoId={aldeanoSeleccionadoId}
         onSeleccionarAldeano={seleccionarAldeano}
       />
+      </Suspense>
 
       <Text style={styles.section}>Recursos</Text>
       <View style={styles.grid}>{ordenRecursos.map((id) => {
@@ -247,6 +252,7 @@ const styles = StyleSheet.create({
   chronicle: { marginTop: theme.spacing[8], borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficie, padding: theme.spacing[12] },
   chronicleItem: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing[8], minHeight: 44, paddingVertical: theme.spacing[8], paddingLeft: theme.spacing[4] }, chronicleLine: { position: 'absolute', left: 14, top: 38, bottom: -8, width: 1, backgroundColor: theme.colors.borde }, chronicleCopy: { flex: 1 }, chronicleYear: { color: theme.colors.acento, fontSize: 14, fontWeight: theme.typography.weights.bold }, chronicleText: { color: theme.colors.textoPrimario, fontSize: 14, marginTop: 2 }, chronicleEmpty: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], minHeight: 44 }, chronicleEmptyText: { flex: 1, color: theme.colors.textoSecundario, fontSize: 14 },
   chronicleToggle: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[4], marginTop: theme.spacing[4] }, chronicleToggleText: { color: theme.colors.acento, fontSize: 14, fontWeight: theme.typography.weights.bold },
+  villagePlaceholder: { height: 360, borderRadius: 12, backgroundColor: theme.colors.superficie },
   section: { color: theme.colors.acento, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold, marginTop: theme.spacing[16], marginBottom: theme.spacing[8] },
   grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: theme.spacing[8], rowGap: theme.spacing[8] }, resourceCell: { flexShrink: 0 },
   actionButton: { marginTop: theme.spacing[12], backgroundColor: theme.colors.acento, borderRadius: theme.radius[6], paddingVertical: theme.spacing[12], alignItems: 'center' }, actionDisabled: { opacity: 0.45 }, actionText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
