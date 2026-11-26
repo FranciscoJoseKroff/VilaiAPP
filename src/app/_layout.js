@@ -14,7 +14,7 @@ import { PressStart2P_400Regular } from '@expo-google-fonts/press-start-2p';
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
-import { LoadSkiaWeb } from '@shopify/react-native-skia/lib/module/web/LoadSkiaWeb';
+import { cargarSkiaWeb } from '../utils/cargarSkiaWeb';
 import { theme } from '../../theme';
 import { ErrorBoundaryGlobal } from '../components/ErrorBoundaryGlobal';
 import { instalarCapturaErroresWeb, registrarError } from '../diagnostico/registro';
@@ -30,9 +30,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
     let activo = true;
-    LoadSkiaWeb({
-      locateFile: (archivo) => archivo.endsWith('.wasm') ? '/canvaskit.wasm' : archivo,
-    }).then(() => activo && setSkiaLista(true)).catch((error) => {
+    cargarSkiaWeb().then(() => activo && setSkiaLista(true)).catch((error) => {
       console.error('No se pudo cargar Skia Web:', error);
       registrarError('Skia Web', error?.message || 'No se pudo cargar el motor gráfico.');
       if (activo) setSkiaLista(true);
