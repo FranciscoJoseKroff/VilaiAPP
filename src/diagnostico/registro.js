@@ -78,7 +78,8 @@ export function crearTextoDiagnostico({ versionApp, versionApi, snapshot }) {
 }
 
 export function instalarCapturaErroresWeb() {
-  if (typeof window === 'undefined') return () => {};
+  // En React Native "window" existe (alias del objeto global) pero no tiene addEventListener.
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return () => {};
   const onError = (event) => registrarError('JavaScript', event.message || 'Error no controlado');
   const onRejection = (event) => registrarError('Promesa', event.reason?.message || event.reason);
   window.addEventListener('error', onError);
