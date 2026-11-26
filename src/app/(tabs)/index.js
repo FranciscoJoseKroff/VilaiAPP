@@ -13,7 +13,6 @@ import { VillagerBottomSheet } from '../../components/VillagerBottomSheet';
 import { aldeanosStore } from '../../simulacion/villagerStore';
 import { useHapticsFeedback } from '../../context/HapticsContext';
 import { useSonido } from '../../servicios/sonidos';
-import { LinearGradient } from 'expo-linear-gradient';
 import PixelPanel from '../../components/pixel/PixelPanel';
 import PixelBar from '../../components/pixel/PixelBar';
 import { AvatarAldeano } from '../../components/AvatarAldeano';
@@ -129,29 +128,15 @@ export default function AldeaTab() {
     <>
     <ScrollView contentContainerStyle={[styles.container, { maxWidth: 960, alignSelf: 'center', width: '100%' }]} >
       <Animated.View pointerEvents="none" style={[styles.ageTint, { opacity: 0.08, backgroundColor: temaTiempo.edadTint }]} />
-      <LinearGradient colors={[theme.colors.fondo, theme.colors.superficie]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.titleGradient}>
-        <Text style={styles.title}>Tu aldea despierta</Text>
-      </LinearGradient>
-      <Text style={styles.subtitle}>Construye, mejora y haz crecer tu comunidad.</Text>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ver estadísticas de la aldea"
-        style={styles.statisticsButton}
-        onPress={() => router.push('/estadisticas')}
-      >
-        <AppIcon name="chart-line" size={20} color={theme.colors.superficie} />
-        <Text style={styles.statisticsButtonText}>Estadísticas</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ver logros de la aldea"
-        style={styles.statisticsButton}
-        onPress={() => router.push('/logros')}
-      >
-        <AppIcon name="trophy" size={20} color={theme.colors.superficie} />
-        <Text style={styles.statisticsButtonText}>Logros</Text>
-      </Pressable>
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">Tu aldea despierta</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver estadísticas de la aldea" style={styles.headerIcon} onPress={() => router.push('/estadisticas')}>
+          <AppIcon name="chart-line" size={20} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver logros de la aldea" style={styles.headerIcon} onPress={() => router.push('/logros')}>
+          <AppIcon name="trophy" size={20} />
+        </Pressable>
+      </View>
 
       <PixelPanel variant="elevada" style={[styles.cycle, advertenciaInvierno && styles.cycleWarning]}>
         <View style={styles.cycleHeading}>
@@ -161,6 +146,27 @@ export default function AldeaTab() {
         <PixelBar value={progresoEstacion} segments={20} continuous color={advertenciaInvierno ? 'aviso' : 'acento'} height={12} accessibilityLabel={`Progreso de ${tituloEstacion}`} />
         <View accessibilityLabel="Progreso del año" style={styles.yearTrack}>{segmentosAnio.map((_, indice) => <View key={indice} style={[styles.yearSegment, indice === indiceEstacion && styles.yearSegmentActive, indice < indiceEstacion && styles.yearSegmentComplete]} />)}</View>
       </PixelPanel>
+
+      <Suspense fallback={<View style={styles.villagePlaceholder} accessibilityLabel="Cargando la aldea" />}>
+        <PixelVillage
+          aldea={aldea}
+          estacion={estacion.id}
+          catalogo={game.catalogo}
+          ahorroBateria={escena.ahorroBateria}
+          particulas={escena.particulas}
+          aldeanoSeleccionadoId={aldeanoSeleccionadoId}
+          onSeleccionarAldeano={seleccionarAldeano}
+        />
+      </Suspense>
+
+      <Text style={styles.section}>Recursos</Text>
+      <View style={styles.grid}>{ordenRecursos.map((id) => {
+        const cantidad = aldea.recursos[id] || 0;
+        const capacidad = capacidades[id] || 0;
+        const tasa = Math.round((Number(game.produccion[id] || 0) - cantidad) * 10) / 10;
+        const factorEstacional = estacionCatalogo?.recursos?.[id];
+        return <View style={[styles.resourceCell, { width: cellWidth }]} key={id}><ResourceChip resource={id} amount={cantidad} capacity={capacidad} rate={tasa} seasonFactor={factorEstacional} /></View>;
+      })}</View>
 
       {edadInfo ? <View style={styles.ageCard} accessibilityRole="summary" accessibilityLabel={`${edadInfo.nombre}. ${edadInfo.descripcion}`}>
         <View style={styles.ageHeading}>
@@ -201,27 +207,6 @@ export default function AldeaTab() {
         ) : <View style={styles.chronicleEmpty}><AppIcon name="book-open-outline" size={24} color={theme.colors.textoSecundario} accessibilityLabel="Crónica vacía" /><Text style={styles.chronicleEmptyText}>La historia de tu aldea comienza aquí.</Text></View>}
       </View>
 
-      <Suspense fallback={<View style={styles.villagePlaceholder} accessibilityLabel="Cargando la aldea" />}>
-      <PixelVillage
-        aldea={aldea}
-        estacion={estacion.id}
-        catalogo={game.catalogo}
-        ahorroBateria={escena.ahorroBateria}
-        particulas={escena.particulas}
-        aldeanoSeleccionadoId={aldeanoSeleccionadoId}
-        onSeleccionarAldeano={seleccionarAldeano}
-      />
-      </Suspense>
-
-      <Text style={styles.section}>Recursos</Text>
-      <View style={styles.grid}>{ordenRecursos.map((id) => {
-        const cantidad = aldea.recursos[id] || 0;
-        const capacidad = capacidades[id] || 0;
-        const tasa = Math.round((Number(game.produccion[id] || 0) - cantidad) * 10) / 10;
-        const factorEstacional = estacionCatalogo?.recursos?.[id];
-        return <View style={[styles.resourceCell, { width: cellWidth }]} key={id}><ResourceChip resource={id} amount={cantidad} capacity={capacidad} rate={tasa} seasonFactor={factorEstacional} /></View>;
-      })}</View>
-
     </ScrollView>
       <VillagerBottomSheet
         ref={villagerSheet}
@@ -239,20 +224,20 @@ export default function AldeaTab() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: theme.colors.fondo, padding: theme.spacing[16], paddingBottom: 88 },
   ageTint: { position: 'absolute', left: 0, right: 0, top: 0, height: 96 },
-  titleGradient: { borderRadius: 4, paddingHorizontal: theme.spacing[8], paddingVertical: theme.spacing[4], marginBottom: theme.spacing[8] },
-  title: { ...theme.typography.titulo, color: theme.colors.textoPrimario },
-  subtitle: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, marginBottom: theme.spacing[16] },
-  statisticsButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[8], backgroundColor: theme.colors.acento, borderRadius: theme.radius[6], marginBottom: theme.spacing[8], paddingHorizontal: theme.spacing[12] },
-  statisticsButtonText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
+  // paddingRight deja libre el engranaje de ajustes, que _layout dibuja en posición absoluta (44 + 12 de margen).
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing[8], paddingRight: 56, marginBottom: theme.spacing[12] },
+  title: { ...theme.typography.titulo, color: theme.colors.textoPrimario, flex: 1 },
+  // marginTop -8: la fila de íconos queda a 8 px del borde, igual que el engranaje.
+  headerIcon: { marginTop: -theme.spacing[8], width: 44, height: 44, borderRadius: theme.radius[16], alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.superficieAlta, borderWidth: 1, borderColor: theme.colors.borde },
+  villagePlaceholder: { height: 360, borderRadius: 12, backgroundColor: theme.colors.superficie },
   cycle: { borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficie, padding: theme.spacing[12], marginBottom: theme.spacing[8] }, cycleWarning: { borderColor: theme.colors.aviso },
   cycleHeading: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], minHeight: 44 }, cycleCopy: { flex: 1 }, cycleText: { ...theme.typography.titulo, color: theme.colors.textoPrimario, fontSize: 16, lineHeight: 24 }, cycleTime: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.small },
   cycleTrack: { height: 8, overflow: 'hidden', borderRadius: theme.radius[6], backgroundColor: theme.colors.superficieAlta, marginTop: theme.spacing[8] }, cycleFill: { height: '100%', backgroundColor: theme.colors.acento }, cycleFillWarning: { backgroundColor: theme.colors.aviso },
-  ageCard: { borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficie, padding: theme.spacing[12], marginTop: theme.spacing[8] }, ageHeading: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: theme.spacing[8] }, ageCopy: { flex: 1 }, ageName: { ...theme.typography.titulo, color: theme.colors.textoPrimario, fontSize: 16, lineHeight: 24 }, ageRemaining: { color: theme.colors.acento, fontSize: 14 }, ageDescription: { color: theme.colors.textoSecundario, fontSize: 14, marginTop: theme.spacing[4] }, ageEffects: { color: theme.colors.exito, fontSize: 14, fontWeight: theme.typography.weights.semibold, marginTop: theme.spacing[8] },
+  ageCard: { borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficie, padding: theme.spacing[12], marginTop: theme.spacing[16] }, ageHeading: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: theme.spacing[8] }, ageCopy: { flex: 1 }, ageName: { ...theme.typography.titulo, color: theme.colors.textoPrimario, fontSize: 16, lineHeight: 24 }, ageRemaining: { color: theme.colors.acento, fontSize: 14 }, ageDescription: { color: theme.colors.textoSecundario, fontSize: 14, marginTop: theme.spacing[4] }, ageEffects: { color: theme.colors.exito, fontSize: 14, fontWeight: theme.typography.weights.semibold, marginTop: theme.spacing[8] },
   yearTrack: { flexDirection: 'row', gap: 4, marginTop: theme.spacing[8] }, yearSegment: { flex: 1, height: 6, borderRadius: 3, borderWidth: 1, borderColor: theme.colors.borde, backgroundColor: theme.colors.superficieAlta }, yearSegmentComplete: { backgroundColor: theme.colors.textoSecundario }, yearSegmentActive: { backgroundColor: theme.colors.acento, borderColor: theme.colors.acento },
   chronicle: { marginTop: theme.spacing[8], borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficie, padding: theme.spacing[12] },
   chronicleItem: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing[8], minHeight: 44, paddingVertical: theme.spacing[8], paddingLeft: theme.spacing[4] }, chronicleLine: { position: 'absolute', left: 14, top: 38, bottom: -8, width: 1, backgroundColor: theme.colors.borde }, chronicleCopy: { flex: 1 }, chronicleYear: { color: theme.colors.acento, fontSize: 14, fontWeight: theme.typography.weights.bold }, chronicleText: { color: theme.colors.textoPrimario, fontSize: 14, marginTop: 2 }, chronicleEmpty: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[8], minHeight: 44 }, chronicleEmptyText: { flex: 1, color: theme.colors.textoSecundario, fontSize: 14 },
   chronicleToggle: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.spacing[4], marginTop: theme.spacing[4] }, chronicleToggleText: { color: theme.colors.acento, fontSize: 14, fontWeight: theme.typography.weights.bold },
-  villagePlaceholder: { height: 360, borderRadius: 12, backgroundColor: theme.colors.superficie },
   section: { color: theme.colors.acento, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold, marginTop: theme.spacing[16], marginBottom: theme.spacing[8] },
   grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: theme.spacing[8], rowGap: theme.spacing[8] }, resourceCell: { flexShrink: 0 },
   actionButton: { marginTop: theme.spacing[12], backgroundColor: theme.colors.acento, borderRadius: theme.radius[6], paddingVertical: theme.spacing[12], alignItems: 'center' }, actionDisabled: { opacity: 0.45 }, actionText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
