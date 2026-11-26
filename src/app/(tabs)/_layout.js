@@ -13,6 +13,8 @@ import { useMetas } from '../../hooks/useMetas';
 import { PanelMetas } from '../../components/PanelMetas';
 import { incrementarContador } from '../../game/estadisticas.js';
 import { aplicarLogros } from '../../game/logros.js';
+import { sumarRecursosConCapacidad } from '../../game/recompensas';
+import { calcularCapacidadesAldea } from '../../game/simulation';
 import { hayConstruccionDisponible } from '../../game/construccion';
 import { puedeInvestigar } from '../../game/investigacion';
 import { MetaDestacadaContext } from '../../components/CintaMeta';
@@ -31,10 +33,13 @@ export default function TabsLayout() {
   const reclamarRecompensa = useCallback((meta) => {
     const actual = game.aldeaRef.current || game.aldea;
     if (!actual) return;
-    const recursos = { ...(actual.recursos || {}) };
-    for (const [recurso, cantidad] of Object.entries(meta.recompensa.recursos || {})) {
-      recursos[recurso] = Number(recursos[recurso] || 0) + Number(cantidad);
-    }
+    // Respeta la capacidad: el servidor rechaza recursos sobre el tope y, al resincronizar, se perdía
+    // la recompensa entera (la meta ya quedaba marcada como reclamada).
+    const { recursos, sobrante } = sumarRecursosConCapacidad(
+      actual.recursos || {},
+      meta.recompensa.recursos,
+      calcularCapacidadesAldea(actual, game.catalogo || {}),
+    );
 
     let aldeanos = actual.aldeanos || [];
     const cantidadAldeanos = Number(meta.recompensa.aldeanos || 0);
@@ -66,7 +71,9 @@ export default function TabsLayout() {
     game.setAldea(actualizada);
     game.guardar(actualizada, game.token);
     const puntos = Number(meta.recompensa.puntosInvestigacion || 0);
-    game.setMensaje(puntos > 0 ? `Meta completada: +${puntos} puntos de investigación` : `Meta completada: ${meta.titulo}`);
+    const sinEspacio = Object.entries(sobrante).map(([recurso, cantidad]) => `${Math.round(cantidad)} ${recurso}`).join(', ');
+    const base = puntos > 0 ? `Meta completada: +${puntos} puntos de investigación` : `Meta completada: ${meta.titulo}`;
+    game.setMensaje(sinEspacio ? `${base} · el almacén no tenía espacio para ${sinEspacio}` : base);
   }, [game]);
 
   const metasJuego = useMemo(() => ({
