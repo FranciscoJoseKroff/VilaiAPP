@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../../theme';
 import { useGame } from '../../context/GameContext';
 import { puedePagar } from '../../game/simulation';
@@ -9,10 +10,13 @@ import { CostChips } from '../../components/CostChips';
 import PixelPanel from '../../components/pixel/PixelPanel';
 import PixelBar from '../../components/pixel/PixelBar';
 import PixelButton from '../../components/pixel/PixelButton';
+import { EncabezadoPestana } from '../../components/EncabezadoPestana';
+import { AppIcon } from '../../components/icons';
 
 export default function ConstruirTab() {
   const game = useGame();
   const recursos = game.aldea?.recursos || {};
+  const [verBloqueados, setVerBloqueados] = useState(false);
   const construibles = datosConstruccion(game.aldea, game.catalogo, game.costosMejora);
   const disponibles = construibles.filter((item) => !item.bloqueado && item.puede && !item.loading).sort((a, b) => a.info.nombre.localeCompare(b.info.nombre));
   const casiDisponibles = construibles.filter((item) => !item.bloqueado && !item.puede && !item.loading && item.faltante < 999).sort((a, b) => a.faltante - b.faltante);
@@ -41,10 +45,9 @@ export default function ConstruirTab() {
   const damaged = edificados.filter((e) => (e.integridad ?? 100) < 100);
 
   return (
+    <View style={styles.pantalla}>
+    <EncabezadoPestana titulo="Construir" />
     <ScrollView contentContainerStyle={[styles.container, { maxWidth: 960, width: '100%', alignSelf: 'center' }]}>
-      <Text style={styles.title}>Construir</Text>
-      <Text style={styles.subtitle}>Expande la aldea y mejora sus edificios.</Text>
-
       {!edificados.length ? (
         <PixelPanel variant="normal" style={styles.empty}>
           <Text style={styles.emptyTitle}>La aldea está lista para comenzar</Text>
@@ -55,7 +58,21 @@ export default function ConstruirTab() {
       {disponibles.length ? <><Text style={styles.section}>Disponibles ahora</Text>{disponibles.map(renderCard)}</> : null}
       {casiDisponibles.length ? <><Text style={styles.section}>Casi disponibles</Text>{casiDisponibles.map(renderCard)}</> : null}
       {cargando.length ? <><Text style={styles.section}>Calculando mejoras</Text>{cargando.map(renderCard)}</> : null}
-      {bloqueados.length ? <><Text style={styles.section}>Bloqueados</Text>{bloqueados.map(renderCard)}</> : null}
+      {bloqueados.length ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: verBloqueados }}
+            accessibilityLabel={`${verBloqueados ? 'Ocultar' : 'Ver'} bloqueados, ${bloqueados.length}`}
+            style={styles.plegable}
+            onPress={() => setVerBloqueados((actual) => !actual)}
+          >
+            <Text style={styles.section}>Bloqueados ({bloqueados.length})</Text>
+            <AppIcon name={verBloqueados ? 'chevron-up' : 'chevron-down'} size={22} color={theme.colors.acento} />
+          </Pressable>
+          {verBloqueados ? bloqueados.map(renderCard) : null}
+        </>
+      ) : null}
 
       {damaged.length ? <>
         <Text style={styles.section}>Reparaciones</Text>
@@ -76,14 +93,15 @@ export default function ConstruirTab() {
       </> : null}
 
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: theme.colors.fondo, padding: theme.spacing[16] },
-  title: { ...theme.typography.titulo, color: theme.colors.textoPrimario },
-  subtitle: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, marginBottom: theme.spacing[16] },
-  section: { color: theme.colors.acento, fontSize: theme.typography.sizes.title, fontWeight: theme.typography.weights.heavy, marginTop: theme.spacing[12], marginBottom: theme.spacing[12] },
+  pantalla: { flex: 1, backgroundColor: theme.colors.fondo },
+  container: { flexGrow: 1, backgroundColor: theme.colors.fondo, padding: theme.spacing[12], paddingBottom: 88 },
+  section: { fontFamily: theme.typography.titulo.fontFamily, fontSize: 12, lineHeight: 18, color: theme.colors.acento, marginTop: theme.spacing[12], marginBottom: theme.spacing[8] },
+  plegable: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   empty: { backgroundColor: theme.colors.superficie, borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[16], padding: theme.spacing[16], marginBottom: theme.spacing[8] },
   emptyTitle: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.title, fontWeight: theme.typography.weights.bold },
   emptyText: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, marginTop: theme.spacing[8] },
