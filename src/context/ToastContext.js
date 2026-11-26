@@ -7,6 +7,7 @@ import PixelPanel from '../components/pixel/PixelPanel';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { AvatarAldeano } from '../components/AvatarAldeano';
 import { useSonido } from '../servicios/sonidos';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ToastContext = createContext(null);
 
@@ -48,8 +49,9 @@ const ICONS = { success: 'check-circle', info: 'information', warning: 'alert', 
 const COLORS = { success: 'exito', info: 'acento', warning: 'aviso', error: 'peligro' };
 
 function ToastHost({ toasts, onDismiss }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View pointerEvents="box-none" style={styles.host}>
+    <View pointerEvents="box-none" style={[styles.host, { bottom: insets.bottom + 142 }]}>
       {toasts.map((toast) => <Toast key={toast.id} {...toast} onDismiss={() => onDismiss(toast.id)} />)}
     </View>
   );
@@ -57,7 +59,7 @@ function ToastHost({ toasts, onDismiss }) {
 
 function Toast({ message, type, aldeano, onDismiss }) {
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(-12);
+  const translateY = useSharedValue(12);
   const reducirMovimiento = useReducedMotion();
   const sonido = useSonido();
   const estiloEntrada = useAnimatedStyle(() => ({
@@ -93,7 +95,9 @@ function PressableToast({ children, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  host: { position: 'absolute', left: 12, right: 12, top: 82, zIndex: 999, gap: 8 },
+  // Abajo, sobre la barra de pestañas (72) y el botón de metas (bottom 82 + 52): no tapa los encabezados
+  // y queda al alcance del pulgar. column-reverse deja el aviso más nuevo pegado abajo.
+  host: { position: 'absolute', left: 12, right: 12, zIndex: 999, gap: 8, flexDirection: 'column-reverse' },
   toast: { borderWidth: 1, borderRadius: theme.radius[10], backgroundColor: theme.colors.superficieAlta, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, elevation: 5 },
   row: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
   message: { flex: 1, color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.semibold },
