@@ -72,6 +72,7 @@ function evaluarAldea(aldeaNueva, aldeaAnterior, ahora = Date.now()) {
     if (Number(aldeaNueva.ciclo?.dia || 1) > cicloMaximo) {
       return {
         rechazo: 'El avance de los años supera el ritmo permitido por el servidor.',
+        detalle: `año ${Number(aldeaNueva.ciclo?.dia || 1)} > máximo ${cicloMaximo.toFixed(2)}`,
         marcarSospechosa: false,
       };
     }
@@ -83,6 +84,7 @@ function evaluarAldea(aldeaNueva, aldeaAnterior, ahora = Date.now()) {
     if (Number(recursos[recurso]) > capacidad + TOLERANCIA_RECURSOS) {
       return {
         rechazo: 'Los recursos superan la capacidad actual de la aldea.',
+        detalle: `${recurso}: ${Number(recursos[recurso])} > ${capacidad}`,
         marcarSospechosa: false,
       };
     }

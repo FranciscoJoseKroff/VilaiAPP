@@ -11,11 +11,15 @@ const { ESCENARIOS } = require('../utils/escenarios');
 const { evaluarAldea } = require('../utils/antiTrampas');
 const { asegurarAldeaVida } = require('../utils/cicloVida');
 
+// Los subcampos del ancla tienen select: false; '+anclaAntiTrampas' no los trae y el ancla se
+// reescribía en cada guardado, dejando el límite de años sin efecto. Hay que pedirlos uno por uno.
+const CAMPOS_ANCLA = '+anclaAntiTrampas.cicloDia +anclaAntiTrampas.inicio';
+
 // GET /api/aldea — trae (o crea) la aldea del usuario y le suma el progreso
 // generado mientras no tenía la app abierta.
 async function obtenerAldea(req, res) {
   try {
-    let aldea = await Aldea.findOne({ usuario: req.usuarioId }).select('+poblacionRanking +anclaAntiTrampas');
+    let aldea = await Aldea.findOne({ usuario: req.usuarioId }).select(`+poblacionRanking ${CAMPOS_ANCLA}`);
     if (!aldea) {
       aldea = await Aldea.create(crearAldeaPorDefecto(req.usuarioId));
     }
@@ -78,7 +82,7 @@ async function guardarAldea(req, res) {
     delete datos.anclaAntiTrampas;
     delete datos.ultimoGuardado;
 
-    const aldeaExistente = await Aldea.findOne({ usuario: req.usuarioId }).select('+sospechosa +poblacionRanking +anclaAntiTrampas');
+    const aldeaExistente = await Aldea.findOne({ usuario: req.usuarioId }).select(`+sospechosa +poblacionRanking ${CAMPOS_ANCLA}`);
     if (Array.isArray(datos.cronica) && aldeaExistente) {
       const combinada = [...(aldeaExistente.cronica || []).map((e) => ({ anio: Number(e.anio), tipo: String(e.tipo), texto: String(e.texto) }))];
       for (const entrada of datos.cronica) {
@@ -99,6 +103,8 @@ async function guardarAldea(req, res) {
       };
       const validacion = evaluarAldea(propuesta, aldeaExistente);
       if (validacion.rechazo) {
+        // Sin esto el 400 no dejaba rastro en el servidor (los de Mongoose sí se registran abajo).
+        console.warn('Guardado rechazado por la validación anti-trampas:', validacion.rechazo, validacion.detalle || '');
         return res.status(400).json({ error: validacion.rechazo });
       }
       if (validacion.marcarSospechosa) datos.sospechosa = true;

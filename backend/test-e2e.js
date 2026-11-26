@@ -260,6 +260,20 @@ async function main() {
   assert.equal(aldeaSospechosa.sospechosa, true);
   console.log('OK: PUT /api/aldea guarda los cambios');
 
+  // El ancla anti-trampas debe sobrevivir a los guardados: antes se reescribía en cada PUT
+  // porque select('+anclaAntiTrampas') no traía sus subcampos (tienen select: false).
+  const leerAncla = async () => (await Aldea.findOne({ usuario: reg.body.usuario.id })
+    .select('+anclaAntiTrampas.cicloDia +anclaAntiTrampas.inicio').lean()).anclaAntiTrampas;
+  const anclaAntes = await leerAncla();
+  assert.ok(anclaAntes?.inicio, 'la aldea debe tener un ancla guardada');
+  await new Promise((r) => setTimeout(r, 20));
+  const otroGuardado = await put('/api/aldea', guardado.body.aldea, token);
+  assert.strictEqual(otroGuardado.status, 200);
+  const anclaDespues = await leerAncla();
+  assert.strictEqual(new Date(anclaDespues.inicio).getTime(), new Date(anclaAntes.inicio).getTime());
+  assert.strictEqual(anclaDespues.cicloDia, anclaAntes.cicloDia);
+  console.log('OK: el ancla anti-trampas no se reescribe al guardar');
+
   const avanceExcesivo = await put('/api/aldea', {
     ...guardado.body.aldea,
     ciclo: { ...guardado.body.aldea.ciclo, dia: guardado.body.aldea.ciclo.dia + 3 },
