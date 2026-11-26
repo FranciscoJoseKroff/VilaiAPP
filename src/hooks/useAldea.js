@@ -66,7 +66,9 @@ export function useAldea(token, setVerificandoSesion, cerrarSesion, velocidadDem
         setResumenOffline(resumenOffline || null);
         const ganancias = Object.entries(progresoInactivo || {});
         if (ganancias.length) setProgresoInactivo(progresoInactivo);
-        if (ganancias.length) setMensaje(`Mientras no jugabas generaste: ${ganancias.map(([recurso, cantidad]) => `+${cantidad} ${recurso}`).join(', ')}`);
+        // progresoInactivo también trae objetos (p. ej. resumenOffline): el mensaje solo lista recursos numéricos.
+        const recursosGanados = ganancias.filter(([, cantidad]) => typeof cantidad === 'number' && cantidad > 0);
+        if (recursosGanados.length) setMensaje(`Mientras no jugabas generaste: ${recursosGanados.map(([recurso, cantidad]) => `+${Math.round(cantidad * 10) / 10} ${recurso}`).join(', ')}`);
       })
       .catch((e) => {
         const mensaje = String(e.message || '').toLowerCase();
