@@ -42,7 +42,8 @@ function SpriteAldeano({ aldeano, indice, ahora, seleccionado }) {
   const cargaVisible = Number(aldeano.carga || 0) > 0;
 
   return (
-    <Group transform={[{ translateX: x }, { translateY: y }, { scaleX: escala }, { translateX: direccion < 0 ? 16 : 0 }]}>
+    // Espejo en el lugar: tras scaleX(-1) se corre -12 (el ancho del sprite) para que siga ocupando x..x+12.
+    <Group transform={[{ translateX: x }, { translateY: y }, { scaleX: escala }, { translateX: direccion < 0 ? -12 : 0 }]}>
       {seleccionado ? (
         <Circle cx={4} cy={25} r={12} color="#e7b85c" style="stroke" strokeWidth={2} />
       ) : null}
@@ -175,10 +176,15 @@ function Baldosas() {
   return baldosas;
 }
 
-function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = false, particulas = true, aldeanoSeleccionadoId = null, onSeleccionarAldeano }) {
+
+const acotar = (valor, limite) => Math.max(-limite, Math.min(limite, valor));
+
+function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = false, particulas = true, aldeanoSeleccionadoId = null, onSeleccionarAldeano, style, children }) {
   const [ahora] = useState(0);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // pan = null: la cámara sigue el centro de la aldea; al arrastrar pasa a ser manual.
+  const [pan, setPan] = useState(null);
+  const [marco, setMarco] = useState({ ancho: 0, alto: 0 });
   const ultimoToque = useRef(0);
   const seleccionId = String(aldeanoSeleccionadoId || '');
   const movimientoReducido = useReducedMotion();
@@ -192,14 +198,43 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
   );
   const aldeanosEscena = aldeanos.slice(0, 30);
 
+  // El mapa (760×360) cubre todo el marco, como "cover" en CSS; el zoom se multiplica encima.
+  const escalaBase = marco.ancho && marco.alto ? Math.max(marco.ancho / MAPA.ancho, marco.alto / MAPA.alto) : 1;
+  const escala = escalaBase * zoom;
+  const limiteX = Math.max(0, (MAPA.ancho * escala - marco.ancho) / 2);
+  const limiteY = Math.max(0, (MAPA.alto * escala - marco.alto) / 2);
+  const edificios = useMemo(() => (aldea?.edificios || []).filter((edificio) => edificio?.tipoId), [aldea?.edificios]);
+  // Centro de la aldea (promedio de aldeanos y edificios) en coordenadas del mapa.
+  const puntos = [
+    ...aldeanosEscena.map((aldeano) => [Number(aldeano.posicion?.x || 240), MAPA.alto - Number(aldeano.posicion?.y || 300)]),
+    ...edificios.map((edificio, indice) => [Number(edificio.x || 40 + (indice % 8) * 92), MAPA.alto - Number(edificio.y || 100 + (indice % 3) * 90)]),
+  ];
+  const foco = puntos.length
+    ? { x: puntos.reduce((total, [x]) => total + x, 0) / puntos.length, y: puntos.reduce((total, [, y]) => total + y, 0) / puntos.length }
+    : { x: MAPA.ancho / 2, y: MAPA.alto / 2 };
+  const panBase = pan || { x: -(foco.x - MAPA.ancho / 2) * escala, y: -(foco.y - MAPA.alto / 2) * escala };
+  const panVisible = { x: acotar(panBase.x, limiteX), y: acotar(panBase.y, limiteY) };
+  // Mapa → pantalla. La misma fórmula mueve el dibujo de Skia y las áreas táctiles, así siempre coinciden.
+  const aPantalla = (x, y) => ({
+    x: marco.ancho / 2 + panVisible.x + (x - MAPA.ancho / 2) * escala,
+    y: marco.alto / 2 + panVisible.y + (y - MAPA.alto / 2) * escala,
+  });
+  const transformacionMapa = [
+    { translateX: marco.ancho / 2 + panVisible.x },
+    { translateY: marco.alto / 2 + panVisible.y },
+    { scale: escala },
+    { translateX: -MAPA.ancho / 2 },
+    { translateY: -MAPA.alto / 2 },
+  ];
+
   useEffect(() => {
     if (!seleccionId) return;
     const aldeano = aldeanos.find((item) => String(item.id) === seleccionId);
     if (!aldeano) return;
     const x = Number(aldeano.posicion?.x || 240);
     const y = MAPA.alto - Number(aldeano.posicion?.y || 300);
-    const destinoX = Math.max(-90, Math.min(90, MAPA.ancho / 2 - x));
-    const destinoY = Math.max(-45, Math.min(45, MAPA.alto / 2 - y));
+    const destinoX = acotar(-(x - MAPA.ancho / 2) * escala, limiteX);
+    const destinoY = acotar(-(y - MAPA.alto / 2) * escala, limiteY);
     if (!perfilGrafico.animacionEscena) {
       const frame = requestAnimationFrame(() => setPan({ x: destinoX, y: destinoY }));
       return () => cancelAnimationFrame(frame);
@@ -209,16 +244,15 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
       paso += 1;
       const avance = paso / 18;
       const suavizado = avance * avance * (3 - 2 * avance);
-      setPan((actual) => ({
-        x: actual.x + (destinoX - actual.x) * suavizado / 2,
-        y: actual.y + (destinoY - actual.y) * suavizado / 2,
-      }));
+      setPan((actual) => {
+        const desde = actual || panVisible;
+        return { x: desde.x + (destinoX - desde.x) * suavizado / 2, y: desde.y + (destinoY - desde.y) * suavizado / 2 };
+      });
       if (paso >= 18) clearInterval(temporizador);
     }, 16);
     return () => clearInterval(temporizador);
   }, [seleccionId, perfilGrafico.animacionEscena]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const edificios = useMemo(() => (aldea?.edificios || []).filter((edificio) => edificio?.tipoId), [aldea?.edificios]);
   const noche = Number(aldea?.ciclo?.segundos || 0) >= 120;
   const estacionTema = estacion === 'otoño' || estacion === 'otono' ? 'Otono' : estacion === 'primavera' ? 'Primavera' : estacion === 'verano' ? 'Verano' : 'Invierno';
 
@@ -228,27 +262,34 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
     onMoveShouldSetPanResponder: () => true,
     onStartShouldSetPanResponder: () => true,
     onPanResponderGrant: (evento) => {
-      panInicial.x = pan.x;
-      panInicial.y = pan.y;
+      panInicial.x = panVisible.x;
+      panInicial.y = panVisible.y;
       const pulsado = Number(evento.nativeEvent.timestamp || 0);
       if (pulsado - ultimoToque.current < 280) {
         setZoom(1);
-        setPan({ x: 0, y: 0 });
+        setPan(null);
       }
       ultimoToque.current = pulsado;
     },
     onPanResponderMove: (evento, gesto) => {
-      const limiteX = MAPA.ancho * (zoom - 1) / 2;
-      const limiteY = MAPA.alto * (zoom - 1) / 2;
       setPan({
-        x: Math.max(-limiteX, Math.min(limiteX, panInicial.x + gesto.dx)),
-        y: Math.max(-limiteY, Math.min(limiteY, panInicial.y + gesto.dy)),
+        x: acotar(panInicial.x + gesto.dx, limiteX),
+        y: acotar(panInicial.y + gesto.dy, limiteY),
       });
     },
   });
 
+  const cambiarZoom = (delta) => setZoom((actual) => Math.max(1, Math.min(2.5, Math.round((actual + delta) * 10) / 10)));
+
   return (
-    <View style={styles.frame} {...panResponder.panHandlers}>
+    <View
+      style={[styles.frame, style]}
+      onLayout={(evento) => {
+        const { width, height } = evento.nativeEvent.layout;
+        setMarco((actual) => (actual.ancho === width && actual.alto === height ? actual : { ancho: width, alto: height }));
+      }}
+      {...panResponder.panHandlers}
+    >
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: 0.12 }, temaTiempo.cieloOverlayStyle]} />
       <LinearGradient
         colors={[
@@ -258,44 +299,47 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <Canvas style={StyleSheet.flatten([styles.canvas, { height: 360 }])}>
-        <Group transform={[{ translateX: pan.x }, { translateY: pan.y }, { scale: zoom }]}>
+      <Canvas style={StyleSheet.flatten(styles.canvas)}>
+        <Group transform={transformacionMapa}>
           <Baldosas />
           {edificios.map((edificio, indice) => <Edificio key={firmaEdificio(edificio, indice)} edificio={edificio} indice={indice} />)}
           {aldeanosEscena.map((aldeano, indice) => <SpriteAldeano key={String(aldeano.id || indice)} aldeano={aldeano} indice={indice} ahora={ahora} seleccionado={String(aldeano.id) === seleccionId} />)}
-        </Group>
-        {noche ? <Rect x={0} y={0} width={760} height={360} color="#182b4a" opacity={0.48} /> : null}
-        {particulas && !ahorroBateria && estacion === 'invierno' && perfilGrafico.coposNieve > 0 ? (
-          <>
-            {Array.from({ length: perfilGrafico.coposNieve }, (_, indice) => {
-              const x = [90, 210, 470, 650][indice];
-              const y = [50, 130, 80, 170][indice];
+          {particulas && !ahorroBateria && estacion === 'invierno' && perfilGrafico.coposNieve > 0
+            ? Array.from({ length: perfilGrafico.coposNieve }, (_, indice) => {
               const size = indice % 2 === 0 ? 3 : 4;
-              return <Rect key={`nieve-${indice}`} x={x} y={y} width={size} height={size} color="#ffffff" />;
-            })}
-          </>
-        ) : null}
+              return <Rect key={`nieve-${indice}`} x={[90, 210, 470, 650][indice]} y={[50, 130, 80, 170][indice]} width={size} height={size} color="#ffffff" />;
+            })
+            : null}
+        </Group>
+        {noche ? <Rect x={0} y={0} width={marco.ancho} height={marco.alto} color="#182b4a" opacity={0.48} /> : null}
       </Canvas>
-      {aldeanosEscena.map((aldeano, indice) => {
+      {marco.ancho > 0 ? aldeanosEscena.map((aldeano, indice) => {
         const x = Number(aldeano.posicion?.x || 240 + indice * 18);
         const y = MAPA.alto - Number(aldeano.posicion?.y || 300);
+        // Centro del sprite (12×23 en coordenadas del mapa); el área táctil mide 44×44 pt.
+        const punto = aPantalla(x + 6, y + 11);
+        if (punto.x < 0 || punto.y < 0 || punto.x > marco.ancho || punto.y > marco.alto) return null;
         return (
           <Pressable
             key={`tocar-${aldeano.id || indice}`}
             accessibilityRole="button"
             accessibilityLabel={`Seleccionar a ${aldeano.nombre || 'aldeano'}`}
-            hitSlop={10}
             onPress={() => onSeleccionarAldeano?.(aldeano)}
-            style={[styles.aldeanoTactil, { left: `${(x / MAPA.ancho) * 100}%`, top: `${(y / MAPA.alto) * 100}%` }]}
+            style={[styles.aldeanoTactil, { left: punto.x - 22, top: punto.y - 22 }]}
           />
         );
-      })}
+      }) : null}
       {!ahorroBateria && particulas && perfilGrafico.particulas > 0 ? (
         <ParticulasAmbiente estacion={estacion} enabled={particulas} ahorroBateria={ahorroBateria} cantidad={perfilGrafico.particulas} />
       ) : null}
+      {children}
       <View style={styles.controles} pointerEvents="box-none">
-        <Text style={styles.zoom} onPress={() => setZoom((actual) => Math.max(0.8, Math.min(2, actual - 0.2)))}>−</Text>
-        <Text style={styles.zoom} onPress={() => setZoom((actual) => Math.max(0.8, Math.min(2, actual + 0.2)))}>+</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Alejar la vista" accessibilityState={{ disabled: zoom <= 1 }} disabled={zoom <= 1} style={[styles.zoom, zoom <= 1 && styles.zoomInactivo]} onPress={() => cambiarZoom(-0.25)}>
+          <Text style={styles.zoomTexto}>−</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Acercar la vista" accessibilityState={{ disabled: zoom >= 2.5 }} disabled={zoom >= 2.5} style={[styles.zoom, zoom >= 2.5 && styles.zoomInactivo]} onPress={() => cambiarZoom(0.25)}>
+          <Text style={styles.zoomTexto}>+</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -305,8 +349,22 @@ export const PixelVillage = memo(PixelVillageComponent);
 
 const styles = StyleSheet.create({
   frame: { width: '100%', height: 360, overflow: 'hidden', borderRadius: 12, backgroundColor: '#82b861' },
-  canvas: { width: '100%' },
-  aldeanoTactil: { position: 'absolute', width: 30, height: 34, marginLeft: -15, marginTop: -17, borderRadius: 15 },
+  canvas: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
+  aldeanoTactil: { position: 'absolute', width: 44, height: 44, borderRadius: 22 },
   controles: { position: 'absolute', right: 8, top: 8, flexDirection: 'row', gap: 8 },
-  zoom: { width: 34, height: 34, textAlign: 'center', lineHeight: 34, borderRadius: 17, overflow: 'hidden', backgroundColor: '#fff8df', color: '#342923', fontSize: 22 },
+  zoom: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 4,
+    borderWidth: 2,
+    borderTopColor: '#fff8df',
+    borderLeftColor: '#fff8df',
+    borderBottomColor: theme.colors.maderaTenue,
+    borderRightColor: theme.colors.maderaTenue,
+    backgroundColor: theme.colors.pergamino,
+  },
+  zoomInactivo: { opacity: 0.5 },
+  zoomTexto: { color: theme.colors.troncoOscuro, fontSize: 24, lineHeight: 28, fontWeight: theme.typography.weights.bold },
 });
