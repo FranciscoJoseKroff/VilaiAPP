@@ -94,6 +94,14 @@ export const colors = {
     cobre: '#a36c2e',
     oroEnvejecido: '#c79a4b',
     salvia: '#5c7d70',
+
+    // Escena pixel de la aldea: suelo, árboles, agua y camino según la estación.
+    escena: {
+      primavera: { suelo: '#86b85f', sueloClaro: '#97c66c', sueloOscuro: '#77a953', copa: '#4e9a5c', copaLuz: '#69b56f', copaSombra: '#3b7d48', agua: '#5f9fbf', aguaLuz: '#9fd0e3', orilla: '#c9b27a', camino: '#c4a06a', caminoBorde: '#a9864f', flores: ['#f2e7be', '#e98aa4', '#f5c762'] },
+      verano: { suelo: '#74a84f', sueloClaro: '#83b65b', sueloOscuro: '#679a45', copa: '#3f8a4c', copaLuz: '#56a35c', copaSombra: '#2f6f3c', agua: '#4f93b6', aguaLuz: '#8cc6dc', orilla: '#cdb47a', camino: '#c9a46b', caminoBorde: '#a9864f', flores: ['#f5c762', '#f2e7be'] },
+      otono: { suelo: '#a3a25c', sueloClaro: '#b2ad66', sueloOscuro: '#929250', copa: '#d0843f', copaLuz: '#e8a04f', copaSombra: '#a8602e', agua: '#55879f', aguaLuz: '#8bb4c4', orilla: '#bba06a', camino: '#b8915d', caminoBorde: '#977347', flores: ['#d57957'] },
+      invierno: { suelo: '#dfe8e0', sueloClaro: '#eef3ee', sueloOscuro: '#c9d6cc', copa: '#3f6f57', copaLuz: '#f4f8f4', copaSombra: '#2e5644', agua: '#b8d4e0', aguaLuz: '#eaf4f8', orilla: '#c7c2b0', camino: '#c9bda6', caminoBorde: '#ada28a', flores: [] },
+    },
   };
 
 export const theme = {

@@ -2,16 +2,17 @@ import React, { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Canvas, Circle, Group, Rect } from '@shopify/react-native-skia';
 import { aldeanosStore } from '../simulacion/villagerStore';
-import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme';
 import { ParticulasAmbiente } from './scene/ParticulasAmbiente';
+import { MAPA, PaisajeAldea } from './scene/PaisajeAldea';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useCalidadGrafica } from '../context/CalidadGraficaContext';
 import { perfilCalidadGrafica } from '../game/calidadGrafica';
 import { useTemaTiempo } from '../hooks/useTemaTiempo';
 import Animated from 'react-native-reanimated';
 
-const MAPA = { ancho: 760, alto: 360 };
+// Escala fija: un aldeano (23 unidades) mide unos 26 pt; el paisaje rellena lo que el mapa no cubre.
+const ESCALA_ESCENA = 1.15;
 const noSuscribirse = () => () => {};
 const COLORES_PROFESION = {
   lenador: '#6d4b2c',
@@ -162,21 +163,6 @@ function Edificio({ edificio, indice }) {
   );
 }
 
-function Baldosas() {
-  const baldosas = [];
-  for (let fila = 0; fila < 12; fila += 1) {
-    for (let columna = 0; columna < 25; columna += 1) {
-      const color = ((fila * 13 + columna * 7) % 4 === 0) ? '#7daf55' : '#82b861';
-      baldosas.push(<Rect key={`${fila}-${columna}`} x={columna * 32} y={fila * 32} width={32} height={32} color={color} />);
-      if ((fila * 3 + columna) % 19 === 0) {
-        baldosas.push(<Rect key={`agua-${fila}-${columna}`} x={columna * 32} y={fila * 32} width={32} height={32} color="#5f91a9" />);
-      }
-    }
-  }
-  return baldosas;
-}
-
-
 const acotar = (valor, limite) => Math.max(-limite, Math.min(limite, valor));
 
 function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = false, particulas = true, aldeanoSeleccionadoId = null, onSeleccionarAldeano, style, children }) {
@@ -198,9 +184,7 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
   );
   const aldeanosEscena = aldeanos.slice(0, 30);
 
-  // El mapa (760×360) cubre todo el marco, como "cover" en CSS; el zoom se multiplica encima.
-  const escalaBase = marco.ancho && marco.alto ? Math.max(marco.ancho / MAPA.ancho, marco.alto / MAPA.alto) : 1;
-  const escala = escalaBase * zoom;
+  const escala = ESCALA_ESCENA * zoom;
   const limiteX = Math.max(0, (MAPA.ancho * escala - marco.ancho) / 2);
   const limiteY = Math.max(0, (MAPA.alto * escala - marco.alto) / 2);
   const edificios = useMemo(() => (aldea?.edificios || []).filter((edificio) => edificio?.tipoId), [aldea?.edificios]);
@@ -254,7 +238,7 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
   }, [seleccionId, perfilGrafico.animacionEscena]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const noche = Number(aldea?.ciclo?.segundos || 0) >= 120;
-  const estacionTema = estacion === 'otoño' || estacion === 'otono' ? 'Otono' : estacion === 'primavera' ? 'Primavera' : estacion === 'verano' ? 'Verano' : 'Invierno';
+  const estacionPaisaje = estacion === 'otoño' ? 'otono' : estacion;
 
   const panInicial = { x: 0, y: 0 };
   // eslint-disable-next-line react-hooks/refs
@@ -290,18 +274,9 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
       }}
       {...panResponder.panHandlers}
     >
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: 0.12 }, temaTiempo.cieloOverlayStyle]} />
-      <LinearGradient
-        colors={[
-          theme.colors[`estacion${estacionTema}Cielo`] || theme.colors.estacionPrimaveraCielo,
-          theme.colors[`estacion${estacionTema}Suelo`] || theme.colors.estacionPrimaveraSuelo,
-        ]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
       <Canvas style={StyleSheet.flatten(styles.canvas)}>
         <Group transform={transformacionMapa}>
-          <Baldosas />
+          <PaisajeAldea estacion={estacionPaisaje} />
           {edificios.map((edificio, indice) => <Edificio key={firmaEdificio(edificio, indice)} edificio={edificio} indice={indice} />)}
           {aldeanosEscena.map((aldeano, indice) => <SpriteAldeano key={String(aldeano.id || indice)} aldeano={aldeano} indice={indice} ahora={ahora} seleccionado={String(aldeano.id) === seleccionId} />)}
           {particulas && !ahorroBateria && estacion === 'invierno' && perfilGrafico.coposNieve > 0
@@ -313,6 +288,7 @@ function PixelVillageComponent({ aldea, estacion = 'primavera', ahorroBateria = 
         </Group>
         {noche ? <Rect x={0} y={0} width={marco.ancho} height={marco.alto} color="#182b4a" opacity={0.48} /> : null}
       </Canvas>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: 0.12 }, temaTiempo.cieloOverlayStyle]} />
       {marco.ancho > 0 ? aldeanosEscena.map((aldeano, indice) => {
         const x = Number(aldeano.posicion?.x || 240 + indice * 18);
         const y = MAPA.alto - Number(aldeano.posicion?.y || 300);
