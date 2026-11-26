@@ -1,0 +1,17 @@
+{
+  "name": "vilai-database",
+  "private": true,
+  "description": "Avance de base de datos NoSQL (MongoDB) de Vilai: esquema, datos de prueba, índices y consultas.",
+  "engines": { "node": ">=20.12" },
+  "scripts": {
+    "schema": "node schema/crear-colecciones.js",
+    "rechazo": "node schema/prueba-rechazo.js",
+    "seed": "node seed/seed.js",
+    "indices": "node indexes/indices.js",
+    "consultas": "node queries/consultas.js",
+    "todo": "npm run schema && npm run seed && npm run indices && npm run rechazo && npm run consultas"
+  },
+  "dependencies": {
+    "mongodb": "^7.6.0"
+  }
+}
