@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { theme } from '../theme';
@@ -11,7 +11,7 @@ import { EtapaVidaIcon } from './EtapaVidaIcon';
 const NOMBRES_PROFESION = { lenador: 'Leñador', granjero: 'Granjero', agricultor: 'Agricultor', minero: 'Minero', guardia: 'Guardia', sin_oficio: 'Sin oficio' };
 
 function Barra({ nombre, valor, color }) {
-  const porcentaje = Math.max(0, Math.min(100, Number(valor || 0)));
+  const porcentaje = Math.round(Math.max(0, Math.min(100, Number(valor || 0))));
   return <View style={styles.bar}><View style={styles.barLabel}><Text style={styles.barName}>{nombre}</Text><Text style={styles.barValue}>{porcentaje}%</Text></View><PixelBar value={porcentaje / 100} continuous color={color} height={10} accessibilityLabel={nombre} /></View>;
 }
 
@@ -23,7 +23,6 @@ export const VillagerBottomSheet = forwardRef(function VillagerBottomSheet({ ald
     cerrar: () => sheet.current?.close(),
   }), []);
 
-  useEffect(() => { if (aldeano) sheet.current?.snapToIndex(0); }, [aldeano]);
   if (!aldeano) return null;
   const necesidades = aldeano.necesidades || {};
   const rasgos = Array.isArray(aldeano.rasgos) ? aldeano.rasgos : [aldeano.rasgo].filter(Boolean);
@@ -31,7 +30,9 @@ export const VillagerBottomSheet = forwardRef(function VillagerBottomSheet({ ald
   const bendicionDisponible = oro >= 10;
 
   return (
-    <BottomSheet ref={sheet} index={-1} snapPoints={snaps} enablePanDownToClose onClose={onClose} backgroundStyle={styles.background} handleIndicatorStyle={styles.handle}>
+    // La hoja solo existe mientras hay un aldeano seleccionado, así que nace abierta (index 0).
+    // Antes nacía cerrada y un efecto llamaba a snapToIndex antes de que la hoja se midiera: no abría.
+    <BottomSheet ref={sheet} index={0} snapPoints={snaps} enablePanDownToClose onClose={onClose} backgroundStyle={styles.background} handleIndicatorStyle={styles.handle}>
       <BottomSheetScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <AvatarAldeano aldeano={aldeano} size={64} />
