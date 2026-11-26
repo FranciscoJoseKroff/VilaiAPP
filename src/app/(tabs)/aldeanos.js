@@ -10,6 +10,7 @@ import PixelPanel from '../../components/pixel/PixelPanel';
 import { AvatarAldeano } from '../../components/AvatarAldeano';
 import { EtapaVidaIcon, datosEtapaVida } from '../../components/EtapaVidaIcon';
 import { etapaVida } from '../../game/cicloVida';
+import { EncabezadoPestana } from '../../components/EncabezadoPestana';
 
 const TRABAJOS = {
   automatico: { nombre: 'Auto', icono: 'robot-outline' },
@@ -20,6 +21,7 @@ const TRABAJOS = {
   libre: { nombre: 'Libre', icono: 'account-off' },
 };
 
+const OFICIOS_RESUMEN = ['lenador', 'agricultor', 'minero', 'guardia', 'libre'];
 const FILTROS = ['todos', 'lenador', 'agricultor', 'minero', 'guardia', 'libre'];
 const SIN_ALDEANOS = [];
 const FACTORES = [
@@ -119,6 +121,7 @@ export default function AldeanosTab() {
   const [seleccionado, setSeleccionado] = useState(null);
   const [opcionExpandida, setOpcionExpandida] = useState(null);
   const [cronicaAldeanos, setCronicaAldeanos] = useState(() => aldeanosStore.getCronica());
+  const [cronicaAbierta, setCronicaAbierta] = useState(false);
   const aldeanos = game.aldea?.aldeanos || SIN_ALDEANOS;
   useEffect(() => aldeanosStore.subscribe(() => setCronicaAldeanos(aldeanosStore.getCronica())), []);
 
@@ -179,12 +182,18 @@ export default function AldeanosTab() {
 
   const header = (
     <>
-      <Text style={styles.title}>Aldeanos</Text>
-      <Text style={styles.subtitle}>{aldeanos.length} de {game.aldea.poblacionMaxima} habitantes</Text>
-
       <View style={styles.chronicleCard}>
-        <Text style={styles.chronicleTitle}>Crónica de la aldea</Text>
-        {cronicaAldeanos.length ? cronicaAldeanos.slice().reverse().slice(0, 50).map((entrada, indice) => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: cronicaAbierta }}
+          accessibilityLabel={`${cronicaAbierta ? 'Ocultar' : 'Ver'} la crónica de la aldea`}
+          style={styles.chronicleToggle}
+          onPress={() => setCronicaAbierta((actual) => !actual)}
+        >
+          <Text style={styles.chronicleTitle}>Crónica de la aldea{cronicaAldeanos.length ? ` (${cronicaAldeanos.length})` : ''}</Text>
+          <AppIcon name={cronicaAbierta ? 'chevron-up' : 'chevron-down'} size={22} color={theme.colors.acento} />
+        </Pressable>
+        {!cronicaAbierta ? null : cronicaAldeanos.length ? cronicaAldeanos.slice().reverse().slice(0, 50).map((entrada, indice) => (
           <View key={`${entrada.fecha}-${indice}`} style={styles.chronicleEntry}>
             {entrada.aldeano || entrada.tipo === 'aldeano' ? (
               <AvatarAldeano aldeano={{ nombre: entrada.texto.replace(/^Llegó\s+/i, '') }} indice={indice} size={32} />
@@ -207,7 +216,14 @@ export default function AldeanosTab() {
       {aldeanos.length ? <>
         <View style={styles.summary}>
           <Text style={styles.summaryTitle}>Resumen de oficios</Text>
-          <Text style={styles.summaryText}>Leñadores {contadores.lenador} · Agricultores {contadores.agricultor} · Mineros {contadores.minero} · Guardias {contadores.guardia} · Libres {contadores.libre}</Text>
+          <View style={styles.oficios}>
+            {OFICIOS_RESUMEN.map((oficio) => (
+              <View key={oficio} style={styles.oficio} accessible accessibilityLabel={`${TRABAJOS[oficio].nombre}: ${contadores[oficio] || 0}`}>
+                <AppIcon name={TRABAJOS[oficio].icono} size={18} color={theme.colors.acento} />
+                <Text style={styles.oficioCantidad}>{contadores[oficio] || 0}</Text>
+              </View>
+            ))}
+          </View>
           <Pressable accessibilityRole="button" style={styles.autoButton} onPress={ponerTodosAuto}><AppIcon name="robot-outline" size={18} color={theme.colors.superficie} /><Text style={styles.autoButtonText}>Poner a todos en Auto</Text></Pressable>
         </View>
 
@@ -252,6 +268,7 @@ export default function AldeanosTab() {
 
   return (
     <View style={styles.screen}>
+      <EncabezadoPestana titulo="Aldeanos" detalle={`${aldeanos.length} de ${game.aldea.poblacionMaxima} habitantes`} />
       <FlatList
         data={visibles}
         keyExtractor={(item, index) => `${item.nombre}-${index}`}
@@ -366,18 +383,19 @@ export default function AldeanosTab() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.fondo },
-  listContent: { padding: theme.spacing[16], paddingBottom: theme.spacing[32] },
-  title: { ...theme.typography.titulo, color: theme.colors.textoPrimario },
-  subtitle: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, marginBottom: theme.spacing[12] },
+  listContent: { padding: theme.spacing[12], paddingBottom: 88 },
+  chronicleToggle: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  oficios: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[8], marginTop: theme.spacing[8] },
+  oficio: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: theme.spacing[8], borderRadius: 4, borderWidth: 2, borderColor: theme.colors.borde, backgroundColor: theme.colors.fondo },
+  oficioCantidad: { fontFamily: theme.typography.cifra.fontFamily, fontSize: 12, lineHeight: 16, color: theme.colors.textoPrimario },
   chronicleCard: { backgroundColor: theme.colors.superficie, borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[16], padding: theme.spacing[12], marginBottom: theme.spacing[12] },
-  chronicleTitle: { color: theme.colors.acento, fontWeight: theme.typography.weights.bold, marginBottom: 8 },
+  chronicleTitle: { color: theme.colors.acento, fontWeight: theme.typography.weights.bold },
   chronicleEntry: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 28 },
   chronicleDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.acento },
   chronicleText: { flex: 1, color: theme.colors.textoSecundario },
   chronicleEmpty: { color: theme.colors.textoSecundario },
   summary: { backgroundColor: theme.colors.superficie, borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[16], padding: theme.spacing[12], marginBottom: theme.spacing[8] },
   summaryTitle: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
-  summaryText: { color: theme.colors.textoSecundario, fontSize: 14, lineHeight: 20, marginTop: 4 },
   autoButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: theme.spacing[12], borderRadius: theme.radius[10], backgroundColor: theme.colors.acento },
   autoButtonText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
   filterList: { flexGrow: 0, marginBottom: theme.spacing[8] }, filters: { gap: theme.spacing[8], paddingVertical: theme.spacing[8] },
