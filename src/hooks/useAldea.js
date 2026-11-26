@@ -49,19 +49,25 @@ export function useAldea(token, setVerificandoSesion, cerrarSesion, velocidadDem
     apiFetch('/catalogo').then(setCatalogo).catch((e) => setError(`No se pudo cargar el catálogo: ${e.message}`));
   }, []);
 
+  // Reemplaza el estado local por la aldea que entregó el servidor (al iniciar y al resincronizar).
+  const aplicarAldeaDelServidor = useCallback((aldeaCargada) => {
+    const aldeaMigrada = migrarInvestigacion({
+      ...aldeaCargada,
+      aldeanos: (aldeaCargada.aldeanos || []).map((aldeano, indice) => crearAldeanoVida(aldeano, indice, aldeaCargada)),
+    });
+    if (aldeaMigrada.ultimoGuardado) registrarGuardadoCorrecto(aldeaMigrada.ultimoGuardado);
+    aldeanosStoreRef.current.setState((aldeaMigrada.aldeanos || []).map((aldeano, indice) => crearAldeanoVida(aldeano, indice, aldeaMigrada)));
+    aldeaRef.current = aldeaMigrada;
+    setAldea(aldeaMigrada);
+  }, []);
+
   useEffect(() => {
     if (!token) return;
     const iniciarCarga = () => setCargandoAldea(true);
     const temporizadorCarga = setTimeout(iniciarCarga, 0);
     apiFetch('/aldea', { token })
       .then(({ aldea: aldeaCargada, progresoInactivo, resumenTiempo, resumenOffline }) => {
-        const aldeaMigrada = migrarInvestigacion({
-          ...aldeaCargada,
-          aldeanos: (aldeaCargada.aldeanos || []).map((aldeano, indice) => crearAldeanoVida(aldeano, indice, aldeaCargada)),
-        });
-        if (aldeaMigrada.ultimoGuardado) registrarGuardadoCorrecto(aldeaMigrada.ultimoGuardado);
-        aldeanosStoreRef.current.setState((aldeaMigrada.aldeanos || []).map((aldeano, indice) => crearAldeanoVida(aldeano, indice, aldeaMigrada)));
-        setAldea(aldeaMigrada);
+        aplicarAldeaDelServidor(aldeaCargada);
         setResumenTiempo(resumenTiempo || null);
         setResumenOffline(resumenOffline || null);
         const ganancias = Object.entries(progresoInactivo || {});
@@ -85,7 +91,7 @@ export function useAldea(token, setVerificandoSesion, cerrarSesion, velocidadDem
         setVerificandoSesion(false);
       });
     return () => clearTimeout(temporizadorCarga);
-  }, [token, cerrarSesion, setVerificandoSesion]);
+  }, [token, cerrarSesion, setVerificandoSesion, aplicarAldeaDelServidor]);
 
   const guardar = useCallback(async (aldeaActualizada, tokenActual, { automatico = false } = {}) => {
     if (!automatico) guardadoRechazadoRef.current = false;
@@ -115,6 +121,21 @@ export function useAldea(token, setVerificandoSesion, cerrarSesion, velocidadDem
             const detalle = e.detalle ? `: ${e.detalle}` : '';
             if (__DEV__) console.error('Error al guardar la aldea', e.status, detalle);
             setError(__DEV__ ? `${e.message}${detalle}` : 'No se pudo guardar la aldea.');
+            // Antes el autoguardado quedaba apagado para siempre mientras el juego seguía avanzando, y al
+            // recargar se perdía todo ese tiempo. Ahora se vuelve al último estado válido del servidor
+            // (se pierden como mucho los ~5 s de este guardado) y el autoguardado continúa.
+            // 401 queda fuera: lo resuelve el flujo de sesión.
+            if (e.status !== 401) {
+              try {
+                const { aldea: aldeaServidor } = await apiFetch('/aldea', { token: tokenActual });
+                aplicarAldeaDelServidor(aldeaServidor);
+                setMensaje('La aldea se resincronizó con el servidor.');
+              } catch {
+                // Sin conexión: el próximo autoguardado lo volverá a intentar.
+              } finally {
+                guardadoRechazadoRef.current = false;
+              }
+            }
             return false;
           }
           setError(`Sin conexión, reintentando...`);
@@ -126,7 +147,7 @@ export function useAldea(token, setVerificandoSesion, cerrarSesion, velocidadDem
     } finally {
       guardadosEnCursoRef.current -= 1;
     }
-  }, []);
+  }, [aplicarAldeaDelServidor]);
 
   const aplicarEscenario = useCallback(async (escenario) => {
     escenarioEnCursoRef.current = true;
