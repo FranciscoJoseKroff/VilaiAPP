@@ -24,7 +24,7 @@ export function CintaMeta({ style }) {
       <AppIcon name={lista ? 'gift' : 'flag-checkered'} size={22} color={lista ? theme.colors.fondo : theme.colors.acento} />
       <View style={styles.texto}>
         <Text style={[styles.titulo, lista && styles.tituloLista]} numberOfLines={1}>{lista ? '¡Meta lista! Toca para reclamar' : meta.titulo}</Text>
-        {lista ? null : <PixelBar value={progreso.proporcion} segments={16} continuous color="acento" height={6} />}
+        {lista ? null : <PixelBar value={progreso.proporcion} segments={16} continuous color="acento" height={10} />}
       </View>
       {lista ? null : <Text style={styles.conteo}>{progreso.actual}/{progreso.objetivo}</Text>}
     </Pressable>

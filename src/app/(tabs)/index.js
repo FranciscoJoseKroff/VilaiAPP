@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../../theme';
 import { useGame } from '../../context/GameContext';
 import { usePreferenciasEscena } from '../../hooks/usePreferenciasEscena';
-import { calcularCapacidadesAldea } from '../../game/simulation';
 import { aplicarLogros } from '../../game/logros';
 import { estacionEn } from '../../game/tiempo';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -20,9 +19,6 @@ import Animated from 'react-native-reanimated';
 // Carga diferida: en web, Skia lee global.CanvasKit al evaluar el módulo, y Expo Router
 // evalúa las rutas antes de que LoadSkiaWeb (en _layout) termine. Importarla aquí la vuelve tarde.
 const PixelVillage = lazy(() => import('../../components/PixelVillage').then((m) => ({ default: m.PixelVillage })));
-
-// Primero los recursos del inicio de la partida; los de la cadena del pan quedan al final de la fila.
-const ORDEN_RECURSOS = ['madera', 'comida', 'oro', 'hierro', 'trigo', 'harina', 'pan'];
 
 export default function AldeaTab() {
   const game = useGame();
@@ -49,7 +45,6 @@ export default function AldeaTab() {
   const estacionCatalogo = game.catalogo?.estaciones?.[estacionCatalogoId];
   const tituloEstacion = estacionCatalogo?.nombre || estacion.id.charAt(0).toUpperCase() + estacion.id.slice(1);
   const restanteInvierno = Math.max(0, 120 - segundos);
-  const capacidades = calcularCapacidadesAldea(aldea, game.catalogo);
   const edadAnio = Number(aldea.ciclo?.dia || 1);
   const edadInfo = game.catalogo?.edades?.[aldea.edad?.id] || game.catalogo?.edades?.calma;
   const aldeanoSeleccionado = aldeanosVida.find((aldeano) => String(aldeano.id) === aldeanoSeleccionadoId) || null;
@@ -69,17 +64,6 @@ export default function AldeaTab() {
     restante: Math.max(0, Math.ceil(estacion.restante)),
     advertencia: estacion.id !== 'invierno' && restanteInvierno < 15,
   };
-
-  const recursosHud = ORDEN_RECURSOS.map((id) => {
-    const cantidad = Number(aldea.recursos?.[id] || 0);
-    return {
-      id,
-      cantidad,
-      capacidad: Number(capacidades[id] || 0),
-      tasa: Math.round((Number(game.produccion[id] || 0) - cantidad) * 10) / 10,
-      factorEstacional: estacionCatalogo?.recursos?.[id],
-    };
-  });
 
   const edadInicio = Number(aldea.edad?.inicioAnio ?? edadAnio);
   const edadDuracion = Number(aldea.edad?.duracionAnios ?? 10);
@@ -143,7 +127,6 @@ export default function AldeaTab() {
     <View style={styles.pantalla}>
       <HudAldea
         estacion={estadoEstacion}
-        recursos={recursosHud}
         onCronica={() => setCronicaVisible(true)}
         onEstadisticas={() => router.push('/estadisticas')}
         onLogros={() => router.push('/logros')}
