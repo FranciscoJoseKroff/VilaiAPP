@@ -194,3 +194,12 @@ export function razonPrincipal(decision, catalogo = {}) {
   if (dominante === 'variedad') return 'Un pequeño ajuste para variar los oficios';
   return 'Todo está en orden';
 }
+// Números cortos para el HUD: 999 → "999", 1250 → "1,2K", 3400000 → "3,4M" (coma decimal, como el resto del juego).
+export function formatoCorto(valor) {
+  const n = Math.floor(Number(valor) || 0);
+  const abs = Math.abs(n);
+  if (abs < 1000) return String(n);
+  const [divisor, sufijo] = abs < 1e6 ? [1e3, 'K'] : [1e6, 'M'];
+  const corto = Math.floor((n / divisor) * 10) / 10;
+  return `${String(corto).replace('.', ',')}${sufijo}`;
+}

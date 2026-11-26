@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../../theme';
 import { useGame } from '../../context/GameContext';
 import { puedePagar } from '../../game/simulation';
+import { datosConstruccion } from '../../game/construccion';
 import { describirEdificio } from '../../game/format';
 import { BuildingCard } from '../../components/BuildingCard';
 import { CostChips } from '../../components/CostChips';
@@ -12,34 +13,7 @@ import PixelButton from '../../components/pixel/PixelButton';
 export default function ConstruirTab() {
   const game = useGame();
   const recursos = game.aldea?.recursos || {};
-  const entradas = Object.entries(game.catalogo?.tiposEdificio || {});
-
-  const getDatos = ([id, info]) => {
-    const existente = game.aldea.edificios.find((e) => e.tipoId === id);
-    const nombresTecnologias = { planosAntiguos: 'Planos antiguos', metalurgia: 'Metalurgia' };
-    const bloqueoTecnologia = info.requiereTecnologia
-      && !(game.aldea.tecnologias?.[info.requiereTecnologia] || 0)
-      ? `Requiere ${nombresTecnologias[info.requiereTecnologia] || info.requiereTecnologia}.`
-      : '';
-    const bloqueoEdificio = (info.requiereEdificio || []).find((requisito) => {
-      const requerido = game.aldea.edificios.find((edificio) => edificio.tipoId === requisito.tipoId);
-      return !requerido || Number(requerido.nivel || 1) < requisito.nivel;
-    });
-    const nombresEdificios = { centroInvestigacion: 'Centro de Investigación' };
-    const bloqueo = bloqueoTecnologia || (bloqueoEdificio
-      ? `Requiere ${nombresEdificios[bloqueoEdificio.tipoId] || bloqueoEdificio.tipoId} nivel ${bloqueoEdificio.nivel}.`
-      : '');
-    const bloqueado = Boolean(bloqueo);
-    const maximo = Boolean(existente && info.maxNivel != null && existente.nivel >= info.maxNivel);
-    const precio = game.costosMejora[id];
-    const loading = Boolean(existente && !maximo && !precio?.error && (!precio || precio.nivel !== existente.nivel));
-    const costo = existente ? (precio?.nivel === existente.nivel ? precio.costo : null) : info.costoBase;
-    const puede = Boolean(costo && puedePagar(recursos, costo));
-    const faltante = costo ? Object.entries(costo).reduce((total, [recurso, cantidad]) => total + Math.max(0, cantidad - (recursos[recurso] || 0)), 0) : 999;
-    return { id, info, existente, bloqueado, bloqueo, maximo, loading, costo, puede, faltante };
-  };
-
-  const construibles = entradas.map(getDatos);
+  const construibles = datosConstruccion(game.aldea, game.catalogo, game.costosMejora);
   const disponibles = construibles.filter((item) => !item.bloqueado && item.puede && !item.loading).sort((a, b) => a.info.nombre.localeCompare(b.info.nombre));
   const casiDisponibles = construibles.filter((item) => !item.bloqueado && !item.puede && !item.loading && item.faltante < 999).sort((a, b) => a.faltante - b.faltante);
   const cargando = construibles.filter((item) => !item.bloqueado && item.loading);

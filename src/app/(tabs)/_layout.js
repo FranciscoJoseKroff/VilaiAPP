@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Tabs, router } from 'expo-router';
+import { Tabs, router, usePathname } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../../theme';
@@ -13,6 +13,9 @@ import { useMetas } from '../../hooks/useMetas';
 import { PanelMetas } from '../../components/PanelMetas';
 import { incrementarContador } from '../../game/estadisticas.js';
 import { aplicarLogros } from '../../game/logros.js';
+import { hayConstruccionDisponible } from '../../game/construccion';
+import { puedeInvestigar } from '../../game/investigacion';
+import { MetaDestacadaContext } from '../../components/CintaMeta';
 
 function LoadingVilai({ message }) {
   return <SafeAreaView style={styles.center} edges={['top', 'bottom']}><View style={styles.brandMark}><Text style={styles.brandText}>VILAI</Text><ActivityIndicator color={theme.colors.acento} />{message ? <Text accessibilityRole="alert" style={styles.loadingMessage}>{message}</Text> : null}</View></SafeAreaView>;
@@ -20,6 +23,7 @@ function LoadingVilai({ message }) {
 
 export default function TabsLayout() {
   const game = useGame();
+  const pathname = usePathname();
   const [mostrarOnboarding, setMostrarOnboarding] = useState(false);
   const [onboardingComprobado, setOnboardingComprobado] = useState(false);
   const [mostrarMetas, setMostrarMetas] = useState(false);
@@ -106,6 +110,17 @@ export default function TabsLayout() {
     return <LoadingVilai message={game.error || undefined} />;
   }
 
+  // Insignias: avisan desde cualquier pestaña que hay algo que hacer en Construir o Investigación.
+  const puedeConstruir = hayConstruccionDisponible(game.aldea, game.catalogo, game.costosMejora);
+  const puedeInvestigarAlgo = game.arbolDesbloqueado && (game.catalogo.arbol || []).some((nodo) => puedeInvestigar(game.aldea, nodo).ok);
+  // Misma meta destacada que muestra PanelMetas: una principal, con prioridad a la que ya se puede reclamar.
+  const metaDestacada = [...sistemaMetas.metas]
+    .filter((meta) => meta.categoria === 'principal')
+    .sort((a, b) => Number(b.estado === 'lista') - Number(a.estado === 'lista'))[0] || sistemaMetas.metas[0];
+  const metaDestacadaValor = metaDestacada
+    ? { meta: metaDestacada, progreso: sistemaMetas.progresoMeta(metaDestacada), porReclamar: sistemaMetas.porReclamar, abrir: () => setMostrarMetas(true) }
+    : null;
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <Pressable accessibilityLabel="Abrir ajustes" accessibilityHint="Abre los ajustes de la aldea" accessibilityRole="button" hitSlop={8} style={styles.gear} onPress={() => router.push('/ajustes')}>
@@ -118,17 +133,19 @@ export default function TabsLayout() {
       ) : null}
       <GameFeedback />
       <OnboardingModal visible={mostrarOnboarding} onClose={() => setMostrarOnboarding(false)} />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Metas de la aldea${sistemaMetas.porReclamar ? `, ${sistemaMetas.porReclamar} por reclamar` : ''}`}
-        style={styles.goalsButton}
-        onPress={() => setMostrarMetas(true)}
-      >
-        <AppIcon name="flag-checkered" size={22} color={theme.colors.superficie} />
-        {sistemaMetas.porReclamar > 0 ? (
-          <View style={styles.goalsBadge}><Text style={styles.goalsBadgeText}>{sistemaMetas.porReclamar}</Text></View>
-        ) : null}
-      </Pressable>
+      {pathname === '/' ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Metas de la aldea${sistemaMetas.porReclamar ? `, ${sistemaMetas.porReclamar} por reclamar` : ''}`}
+          style={styles.goalsButton}
+          onPress={() => setMostrarMetas(true)}
+        >
+          <AppIcon name="flag-checkered" size={22} color={theme.colors.superficie} />
+          {sistemaMetas.porReclamar > 0 ? (
+            <View style={styles.goalsBadge}><Text style={styles.goalsBadgeText}>{sistemaMetas.porReclamar}</Text></View>
+          ) : null}
+        </Pressable>
+      )}
       <PanelMetas
         visible={mostrarMetas}
         metas={sistemaMetas.metas}
@@ -138,13 +155,15 @@ export default function TabsLayout() {
         onReclamar={sistemaMetas.reclamar}
         onClose={() => setMostrarMetas(false)}
       />
+      <MetaDestacadaContext.Provider value={metaDestacadaValor}>
       <Tabs screenOptions={{ headerShown: false, tabBarStyle: styles.tabBar, tabBarActiveTintColor: theme.colors.acento, tabBarInactiveTintColor: theme.colors.textoSecundario, tabBarLabelStyle: styles.tabLabel }}>
         <Tabs.Screen name="index" options={{ title: 'Aldea', tabBarIcon: ({ color }) => <AppIcon name="home-variant" size={20} color={color} /> }} />
         <Tabs.Screen name="aldeanos" options={{ title: 'Aldeanos', tabBarIcon: ({ color }) => <AppIcon name="account-group" size={20} color={color} /> }} />
-        <Tabs.Screen name="construir" options={{ title: 'Construir', tabBarIcon: ({ color }) => <AppIcon name="hammer-wrench" size={20} color={color} /> }} />
-        <Tabs.Screen name="investigacion" options={{ title: 'Investigación', tabBarIcon: ({ color }) => <AppIcon name={game.arbolDesbloqueado ? 'flask' : 'lock'} size={20} color={color} /> }} />
+        <Tabs.Screen name="construir" options={{ title: 'Construir', tabBarBadge: puedeConstruir ? '!' : undefined, tabBarBadgeStyle: styles.tabBadge, tabBarAccessibilityLabel: puedeConstruir ? 'Construir, hay edificios que puedes pagar' : 'Construir', tabBarIcon: ({ color }) => <AppIcon name="hammer-wrench" size={20} color={color} /> }} />
+        <Tabs.Screen name="investigacion" options={{ title: 'Investigación', tabBarBadge: puedeInvestigarAlgo ? '!' : undefined, tabBarBadgeStyle: styles.tabBadge, tabBarAccessibilityLabel: puedeInvestigarAlgo ? 'Investigación, hay investigaciones disponibles' : 'Investigación', tabBarIcon: ({ color }) => <AppIcon name={game.arbolDesbloqueado ? 'flask' : 'lock'} size={20} color={color} /> }} />
         <Tabs.Screen name="ajustes" options={{ tabBarButton: () => null, title: 'Ajustes' }} />
       </Tabs>
+      </MetaDestacadaContext.Provider>
     </SafeAreaView>
   );
 }
@@ -164,4 +183,5 @@ const styles = StyleSheet.create({
   goalsButton: { position: 'absolute', right: 12, bottom: 82, width: 52, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 26, zIndex: 20, elevation: 20, backgroundColor: theme.colors.acento, borderWidth: 2, borderColor: theme.colors.superficie },
   goalsBadge: { position: 'absolute', top: -5, right: -5, minWidth: 22, height: 22, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: theme.colors.peligro },
   goalsBadgeText: { color: theme.colors.textoPrimario, fontSize: 12, fontWeight: theme.typography.weights.bold },
+  tabBadge: { backgroundColor: theme.colors.acento, color: theme.colors.fondo, fontWeight: theme.typography.weights.bold },
 });
