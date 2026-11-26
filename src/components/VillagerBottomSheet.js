@@ -45,7 +45,7 @@ export const VillagerBottomSheet = forwardRef(function VillagerBottomSheet({ ald
         <Barra nombre="Energía" valor={necesidades.energia} color={theme.colors.estacionVeranoCielo} />
         <Barra nombre="Ánimo" valor={necesidades.animo} color={theme.colors.exito} />
         <Text style={styles.section}>Profesión</Text>
-        <View style={styles.jobs}>{trabajosDisponibles.map((trabajo) => <PixelButton key={trabajo.id} disabled={trabajo.id === profesion} variant={trabajo.id === profesion ? 'secundario' : 'fantasma'} style={styles.job} onPress={() => onAsignar(trabajo.id)}>{trabajo.nombre}</PixelButton>)}</View>
+        <View style={styles.jobs}>{trabajosDisponibles.map((trabajo) => <PixelButton key={trabajo.id} disabled={trabajo.id === profesion} variant={trabajo.id === profesion ? 'secundario' : 'fantasma'} onPress={() => onAsignar(trabajo.id)}>{trabajo.nombre}</PixelButton>)}</View>
         <PixelButton disabled={!bendicionDisponible} style={styles.bless} onPress={onBendecir}>Bendecir · 10 oro</PixelButton>
         <Text style={styles.section}>Últimas acciones</Text>
         {(Array.isArray(aldeano.historial) ? aldeano.historial : []).slice(0, 5).map((accion, indice) => <View key={`${accion}-${indice}`} style={styles.history}><View style={styles.historyDot} /><Text style={styles.historyText}>{accion}</Text></View>)}
@@ -76,10 +76,9 @@ const styles = StyleSheet.create({
   fill: { height: '100%', borderRadius: 4 },
   section: { color: theme.colors.acento, fontWeight: theme.typography.weights.bold, marginTop: theme.spacing[20], marginBottom: 8 },
   jobs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  job: { borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[10], paddingHorizontal: 12, paddingVertical: 9 },
   jobActive: { borderColor: theme.colors.acento, backgroundColor: theme.colors.superficieAlta },
   jobText: { color: theme.colors.textoPrimario },
-  bless: { marginTop: theme.spacing[16], minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: theme.radius[10], backgroundColor: theme.colors.acento },
+  bless: { marginTop: theme.spacing[16] },
   disabled: { opacity: 0.45 },
   blessText: { color: theme.colors.superficie, fontWeight: theme.typography.weights.bold },
   history: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 32 },

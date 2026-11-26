@@ -67,7 +67,8 @@ export default memo(PixelButton);
 
 const styles = StyleSheet.create({
   pressable: { minHeight: 44, minWidth: 44, justifyContent: 'center', position: 'relative', marginBottom: 3 },
-  fill: { minHeight: 44, paddingHorizontal: theme.spacing[16], alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRadius: 4 },
+  // alignSelf stretch: el relleno ocupa todo el botón aunque quien lo use pase alignItems: 'center'.
+  fill: { alignSelf: 'stretch', minHeight: 44, paddingHorizontal: theme.spacing[16], alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRadius: 4 },
   shadow: { position: 'absolute', left: 2, right: -2, bottom: -5, height: 5, backgroundColor: theme.colors.troncoOscuro, zIndex: -1 },
   pressed: { transform: [{ translateY: 2 }] },
   disabled: { opacity: 0.45 },

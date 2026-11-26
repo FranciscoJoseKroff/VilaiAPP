@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   opcionConsecuencia: { color: theme.colors.textoSecundario, fontSize: 14, marginTop: 4 },
   consecuencia: { color: theme.colors.aviso, fontSize: 14, marginTop: 4 },
   botones: { flexDirection: 'row', gap: theme.spacing[8], width: '100%', marginTop: theme.spacing[16] },
-  boton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius[10] },
+  boton: { flex: 1 },
   defender: { backgroundColor: theme.colors.acento }, aceptar: { borderWidth: 1, borderColor: theme.colors.borde },
   deshabilitado: { opacity: 0.45 }, botonDefender: { color: theme.colors.superficie, fontWeight: theme.typography.weights.bold }, botonAceptar: { color: theme.colors.textoPrimario, fontWeight: theme.typography.weights.bold },
 });
