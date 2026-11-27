@@ -84,7 +84,7 @@ Los nombres exactos pueden haber cambiado: confirma leyendo el repositorio.
 
 ## 7. Deuda y problemas conocidos
 
-- Los 8 sonidos de `assets/sounds/*.mp3` pesaban **0 bytes** en la última revisión (no suenan); hay una carpeta duplicada `assets/sonidos`.
+- Los sonidos son 8 WAV sintetizados por `scripts/generar-sonidos.mjs` (los MP3 originales pesaban 0 bytes y nunca sonaron). Para cambiarlos, edita el script y vuelve a ejecutarlo.
 - `app.json`: no configura el splash (falta el plugin `expo-splash-screen`) y el ícono adaptativo tenía fondo `#E6F4FE`.
 - La carpeta `test-results/` (salida de Playwright) apareció subida al repositorio.
 - Tests y vectores: se detectaron pruebas desactualizadas y un vector de paridad de IA que fallaba; confirma que `npm test` y `node scripts/verificar-paridad.mjs` pasan.

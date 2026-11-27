@@ -34,7 +34,6 @@ export const CREDITOS = {
     { nombre: 'DiceBear Pixel Art', autor: 'Florian Körner', licencia: 'Diseño CC0 1.0; código MIT', url: 'https://www.dicebear.com/styles/pixel-art/' },
   ],
   audio: [
-    { nombre: 'Kenney Interface Sounds', autor: 'Kenney', licencia: 'CC0 1.0', url: 'https://kenney.nl/assets/interface-sounds' },
-    { nombre: 'Kenney UI Audio', autor: 'Kenney', licencia: 'CC0 1.0', url: 'https://kenney.nl/assets/ui-audio' },
+    { nombre: 'Efectos sintetizados para Vilai', autor: 'Francisco José Kroff Inzunza', licencia: 'MIT', url: 'https://github.com/FranciscoJoseKroff/VilaiAPP/blob/main/scripts/generar-sonidos.mjs' },
   ],
 };
