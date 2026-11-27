@@ -18,6 +18,7 @@
 - Los prompts usan la convención **"ALTO Y REPORTA"**: cuando aparezca, detente, muestra el diagnóstico o la tabla y espera confirmación.
 - Trabaja en **Windows (PowerShell)** y en una laptop con **CachyOS (Arch)**; da comandos para ambos cuando difieran.
 - Va a **defender el código en vivo** frente a su profesor: prefiere soluciones que pueda entender y explicar, y no te saltes la explicación de por qué.
+- **Los commits los hace Francisco:** no ejecutes `git commit` ni `git push`. Cuando un cambio esté listo y verificado, avisa "Momento de commit" con los archivos y un mensaje sugerido. Trabaja desde dos equipos (PC con Windows y laptop con CachyOS), así que recuérdale hacer `git pull` antes de empezar.
 - Commits pequeños y descriptivos. Sin librerías nuevas sin avisar (nombre, peso y licencia); las de Expo se instalan con `npx expo install`.
 
 ## 3. Stack y estructura
