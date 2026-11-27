@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../../theme';
 import { useGame } from '../context/GameContext';
 import { useToast } from '../context/ToastContext';
 import { useHapticsFeedback } from '../context/HapticsContext';
-import { AppIcon } from './icons';
+import { AppIcon, RESOURCE_ICONS, ResourceIcon } from './icons';
 import { estacionEn } from '../game/tiempo';
 import { useSonido } from '../servicios/sonidos';
-import { EventoModal } from './EventoModal';
+import { EventoModal, ICONOS_EVENTO, TITULOS_EVENTO } from './EventoModal';
+import { armarInformeAusencia } from '../game/informeAusencia';
 import { VueloRecurso } from './VueloRecurso';
 import { ContadorAnimado } from './ContadorAnimado';
 import { CelebracionParticulas } from './CelebracionParticulas';
@@ -145,12 +147,11 @@ export function GameFeedback() {
 
   useEffect(() => {
     if (!game.resumenOffline || offlineHandled.current) return;
-    const segundos = Number(game.resumenOffline.segundosAusente || 0);
-    if (segundos <= 60) return;
+    if (!armarInformeAusencia({ resumenTiempo: game.resumenTiempo, resumenOffline: game.resumenOffline }).mostrar) return;
     offlineHandled.current = true;
     const temporizador = setTimeout(() => setOfflineVisible(true), 0);
     return () => clearTimeout(temporizador);
-  }, [game.resumenOffline]);
+  }, [game.resumenOffline, game.resumenTiempo]);
 
   useEffect(() => {
     if (!offlineVisible || !game.resumenOffline?.logrosDesbloqueados?.length) return;
@@ -229,7 +230,7 @@ export function GameFeedback() {
     <CelebracionParticulas activo={celebracion} onTerminar={() => setCelebracion(false)} />
     <OfflineModal
       visible={offlineVisible}
-      resumen={game.resumenOffline}
+      informe={armarInformeAusencia({ resumenTiempo: game.resumenTiempo, resumenOffline: game.resumenOffline, aldea: game.aldea })}
       catalogo={game.catalogo}
       onRecoger={() => {
         setOfflineVisible(false);
@@ -239,34 +240,101 @@ export function GameFeedback() {
   </>;
 }
 
-function OfflineModal({ visible, resumen, catalogo, onRecoger }) {
-  const seconds = Number(resumen?.segundosAusente || resumen?.segundosAplicados || 0);
-  const gains = resumen?.recursosGenerados || {};
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const time = hours > 0 ? `${hours} h${minutes ? ` ${minutes} min` : ''}` : minutes > 0 ? `${minutes} min` : 'menos de 1 min';
-  const nombresLogros = new Map((catalogo?.logros || []).map((logro) => [logro.id, logro.nombre]));
+const ICONO_POBLACION = { aldeano: 'account-plus', nacimiento: 'baby-carriage', fallecimiento: 'grave-stone' };
+
+function SeccionInforme({ titulo, children }) {
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.offlineBackdrop}><View style={styles.offlineModal}>
-        <AppIcon name="clock-outline" size={32} color={theme.colors.acento} />
-        <Text accessibilityRole="header" style={styles.offlineTitle}>¡Bienvenido de vuelta!</Text>
-        <Text style={styles.offlineTime}>Estuviste ausente {time}.</Text>
-        {resumen?.alcanzoTope8h ? <Text style={styles.offlineAge}>Se alcanzó el límite de 8 horas.</Text> : null}
-        {Number(resumen?.aldeanosLlegados || 0) > 0 ? <Text style={styles.offlineAge}>{resumen.aldeanosLlegados} aldeano{resumen.aldeanosLlegados === 1 ? '' : 's'} llegó{resumen.aldeanosLlegados === 1 ? '' : 'ron'}.</Text> : null}
-        {(resumen?.logrosDesbloqueados || []).map((id) => (
-          <Text key={id} style={styles.offlineAge}>Logro desbloqueado: {nombresLogros.get(id) || id}</Text>
-        ))}
-        <View style={styles.gains}>{Object.entries(gains).map(([resource, amount]) => <View key={resource} style={styles.gain}><AppIcon name={resource === 'madera' ? 'tree' : resource === 'comida' ? 'food-apple' : resource === 'oro' ? 'currency-usd' : 'package-variant'} size={18} color={theme.colors.acento} /><ContadorAnimado value={Number(amount)} style={styles.gainText} formato={(valor) => `+${Math.round(valor)} ${resource}`} /></View>)}</View>
-        <Pressable accessibilityRole="button" style={styles.offlineButton} onPress={onRecoger}><Text style={styles.offlineButtonText}>Recoger</Text></Pressable>
-      </View></View>
+    <View style={styles.informeSeccion}>
+      <Text accessibilityRole="header" style={styles.informeSeccionTitulo}>{titulo}</Text>
+      {children}
+    </View>
+  );
+}
+
+function LineaInforme({ icono, color = theme.colors.acento, children }) {
+  return (
+    <View style={styles.informeLinea}>
+      <AppIcon name={icono} size={18} color={color} />
+      <Text style={styles.informeTexto}>{children}</Text>
+    </View>
+  );
+}
+
+// Informe "Mientras no estabas": arma las secciones con armarInformeAusencia y
+// oculta las que no tienen nada que contar.
+function OfflineModal({ visible, informe, catalogo, onRecoger }) {
+  const insets = useSafeAreaInsets();
+  const nombresLogros = new Map((catalogo?.logros || []).map((logro) => [logro.id, logro.nombre]));
+  const hayHechos = informe.evento || informe.reliquias.length || informe.investigaciones.length || informe.logros.length;
+  return (
+    <Modal visible={visible} animationType="fade" onRequestClose={onRecoger}>
+      <View style={[styles.informe, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
+        <ScrollView contentContainerStyle={styles.informeContenido}>
+          <AppIcon name="book-open-page-variant" size={36} color={theme.colors.acento} />
+          <Text accessibilityRole="header" style={styles.offlineTitle}>Mientras no estabas</Text>
+          <Text style={styles.offlineTime}>Estuviste ausente {informe.tiempo}.</Text>
+
+          <SeccionInforme titulo="El tiempo">
+            <LineaInforme icono="calendar-clock">
+              {informe.anios > 0 ? `Pasaron ${informe.anios} año${informe.anios === 1 ? '' : 's'} en la aldea.` : 'No alcanzó a pasar un año completo.'}
+            </LineaInforme>
+            {informe.cambioEdad ? <LineaInforme icono="weather-sunset">La aldea dejó atrás la {informe.cambioEdad.de} y entró en la {informe.cambioEdad.a}.</LineaInforme> : null}
+            {informe.edades.map((c, i) => <LineaInforme key={`e${i}`} icono="weather-sunset-up">Año {c.anio}: {c.texto}.</LineaInforme>)}
+            {informe.alcanzoTope8h ? <LineaInforme icono="timer-sand-complete" color={theme.colors.aviso}>Se alcanzó el límite de 8 horas de progreso.</LineaInforme> : null}
+          </SeccionInforme>
+
+          {hayHechos ? (
+            <SeccionInforme titulo="Lo que ocurrió">
+              {informe.evento ? (
+                <LineaInforme icono={ICONOS_EVENTO[informe.evento.tipo] || 'weather-lightning'} color={theme.colors.aviso}>
+                  Te espera un evento: {TITULOS_EVENTO[informe.evento.tipo] || informe.evento.tipo}{informe.evento.anio ? ` (año ${informe.evento.anio})` : ''}.
+                </LineaInforme>
+              ) : null}
+              {informe.reliquias.length === 1 ? <LineaInforme icono="diamond-stone">Año {informe.reliquias[0].anio}: {informe.reliquias[0].texto}.</LineaInforme> : null}
+              {informe.reliquias.length > 1 ? (
+                <LineaInforme icono="diamond-stone">
+                  Se hallaron {informe.reliquias.length} reliquias entre las ruinas (años {informe.reliquias.map((c) => c.anio).join(', ')}).
+                </LineaInforme>
+              ) : null}
+              {informe.investigaciones.map((c, i) => <LineaInforme key={`i${i}`} icono="flask">Año {c.anio}: {c.texto}.</LineaInforme>)}
+              {informe.logros.map((id) => <LineaInforme key={id} icono="trophy">Logro desbloqueado: {nombresLogros.get(id) || id}.</LineaInforme>)}
+            </SeccionInforme>
+          ) : null}
+
+          {informe.poblacion.length || informe.cambiosDeEtapa ? (
+            <SeccionInforme titulo="Los aldeanos">
+              {informe.poblacion.map((c, i) => (
+                <LineaInforme key={`p${i}`} icono={ICONO_POBLACION[c.tipo]} color={c.tipo === 'fallecimiento' ? theme.colors.textoSecundario : theme.colors.exito}>
+                  Año {c.anio}: {c.texto}.
+                </LineaInforme>
+              ))}
+              {informe.cambiosDeEtapa ? <LineaInforme icono="account-arrow-up">{informe.cambiosDeEtapa} cambio{informe.cambiosDeEtapa === 1 ? '' : 's'} de etapa de vida.</LineaInforme> : null}
+            </SeccionInforme>
+          ) : null}
+
+          {informe.recursos.length ? (
+            <SeccionInforme titulo="Recursos que llegaron">
+              <View style={styles.gains}>
+                {informe.recursos.map(({ recurso, cantidad }) => (
+                  <View key={recurso} style={styles.gain}>
+                    <ResourceIcon resource={recurso} size={18} />
+                    <ContadorAnimado value={cantidad} style={styles.gainText} formato={(valor) => `+${Math.round(valor)} ${RESOURCE_ICONS[recurso]?.label?.toLowerCase() || recurso}`} />
+                  </View>
+                ))}
+              </View>
+            </SeccionInforme>
+          ) : null}
+        </ScrollView>
+        <Pressable accessibilityRole="button" accessibilityLabel="Recoger recursos y volver a la aldea" style={styles.offlineButton} onPress={onRecoger}>
+          <Text style={styles.offlineButtonText}>Recoger</Text>
+        </Pressable>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  offlineAge: { color: theme.colors.acento, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold, textAlign: 'center', marginTop: 8 },
   network: { position: 'absolute', top: 8, left: 12, right: 68, zIndex: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 32, borderRadius: theme.radius[10], borderWidth: 1, borderColor: theme.colors.aviso, backgroundColor: theme.colors.superficieAlta }, networkText: { color: theme.colors.aviso, fontSize: 14 },
   eventBanner: { backgroundColor: theme.colors.superficie, borderBottomWidth: 1, borderBottomColor: theme.colors.aviso, padding: 10 }, eventHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 }, eventCopy: { flex: 1 }, eventTitle: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold }, eventDescription: { color: theme.colors.textoSecundario, fontSize: 14 }, eventActions: { flexDirection: 'row', gap: 8, marginTop: 8 }, defend: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius[10], backgroundColor: theme.colors.acento }, disabled: { opacity: 0.45 }, defendText: { color: theme.colors.superficie, fontWeight: theme.typography.weights.bold }, accept: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius[10], borderWidth: 1, borderColor: theme.colors.borde }, acceptText: { color: theme.colors.textoPrimario, fontWeight: theme.typography.weights.bold },
-  offlineBackdrop: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.65)' }, offlineModal: { alignItems: 'center', backgroundColor: theme.colors.superficie, borderRadius: theme.radius[16], borderWidth: 1, borderColor: theme.colors.borde, padding: theme.spacing[24] }, offlineTitle: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.large, fontWeight: theme.typography.weights.heavy, marginTop: 8 }, offlineTime: { color: theme.colors.textoSecundario, fontSize: 14, textAlign: 'center', marginTop: 6 }, gains: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginVertical: theme.spacing[16] }, gain: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[6], paddingHorizontal: 8, paddingVertical: 6 }, gainText: { color: theme.colors.textoPrimario, fontSize: 14, fontWeight: theme.typography.weights.bold }, offlineButton: { minHeight: 44, width: '100%', alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius[10], backgroundColor: theme.colors.acento }, offlineButtonText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
+  informe: { flex: 1, backgroundColor: theme.colors.fondo, paddingHorizontal: theme.spacing[16] }, informeContenido: { alignItems: 'center', paddingBottom: theme.spacing[16] }, informeSeccion: { alignSelf: 'stretch', marginTop: theme.spacing[16], padding: theme.spacing[16], gap: 8, backgroundColor: theme.colors.superficie, borderRadius: theme.radius[16], borderWidth: 1, borderColor: theme.colors.borde }, informeSeccionTitulo: { color: theme.colors.acento, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold }, informeLinea: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 }, informeTexto: { flex: 1, color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.normal, lineHeight: 22 }, offlineTitle: { color: theme.colors.textoPrimario, fontSize: theme.typography.sizes.large, fontWeight: theme.typography.weights.heavy, marginTop: 8 }, offlineTime: { color: theme.colors.textoSecundario, fontSize: theme.typography.sizes.normal, textAlign: 'center', marginTop: 6 }, gains: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }, gain: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: theme.colors.borde, borderRadius: theme.radius[6], paddingHorizontal: 8, paddingVertical: 6 }, gainText: { color: theme.colors.textoPrimario, fontSize: 14, fontWeight: theme.typography.weights.bold }, offlineButton: { minHeight: 44, width: '100%', marginTop: theme.spacing[16], alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius[10], backgroundColor: theme.colors.acento }, offlineButtonText: { color: theme.colors.superficie, fontSize: theme.typography.sizes.normal, fontWeight: theme.typography.weights.bold },
 });

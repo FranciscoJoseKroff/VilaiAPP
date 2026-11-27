@@ -7,8 +7,8 @@ import PixelPanel from './pixel/PixelPanel';
 import PixelButton from './pixel/PixelButton';
 import GameIcon from './GameIcon';
 
-const ICONOS = { bestias: 'paw', helada: 'snowflake', recaudador: 'cash', incendio: 'fire' };
-const TITULOS = { bestias: 'Bestias acechantes', helada: 'Helada nocturna', recaudador: 'Recaudador del camino', incendio: 'Incendio' };
+export const ICONOS_EVENTO = { bestias: 'paw', helada: 'snowflake', recaudador: 'cash', incendio: 'fire' };
+export const TITULOS_EVENTO = { bestias: 'Bestias acechantes', helada: 'Helada nocturna', recaudador: 'Recaudador del camino', incendio: 'Incendio' };
 
 export function EventoModal({ evento, tipo, recursos, puedeDefender, onDefender, onAceptar, visible }) {
   const costo = evento?.costoDefensa || {};
@@ -37,9 +37,9 @@ export function EventoModal({ evento, tipo, recursos, puedeDefender, onDefender,
             <View style={styles.icono}>
               {tipo === 'incendio'
                 ? <GameIcon id="burningEmbers" size={52} color={theme.colors.aviso} />
-                : <AppIcon name={ICONOS[tipo] || 'weather-lightning'} size={52} color={theme.colors.aviso} />}
+                : <AppIcon name={ICONOS_EVENTO[tipo] || 'weather-lightning'} size={52} color={theme.colors.aviso} />}
             </View>
-            <Text accessibilityRole="header" style={styles.titulo}>{evento.nombre || TITULOS[tipo] || tipo}</Text>
+            <Text accessibilityRole="header" style={styles.titulo}>{evento.nombre || TITULOS_EVENTO[tipo] || tipo}</Text>
             <Text style={styles.descripcion}>{tipo === 'recaudador' ? 'El recaudador exige tributo antes de continuar por el camino.' : evento.descripcion || 'Una amenaza obliga a la aldea a tomar una decisión.'}</Text>
 
             <View style={styles.opcion}>
